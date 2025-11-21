@@ -78,21 +78,19 @@ function StatusCircle({ iconName, label, value }: StatusCircleProps) {
   return (
     <View style={styles.statusItem}>
       <View style={styles.iconWrapper}>
+        {/* Badge moved outside of iconCircle to avoid clipping */}
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{percent}%</Text>
+        </View>
         {/* Background circle */}
         <View style={styles.iconCircle}>
           {/* Green fill that drains from bottom to top */}
           <View style={styles.iconFillContainer}>
             <View style={[styles.iconFill, { height: `${percent}%` }]} />
           </View>
-
           {/* Icon on top */}
           <View style={styles.iconContent}>
             <FontAwesome5 name={iconName} size={24} color="#333" />
-          </View>
-
-          {/* Percentage badge */}
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{percent}%</Text>
           </View>
         </View>
       </View>
@@ -139,6 +137,7 @@ const styles = StyleSheet.create({
   iconWrapper: {
     alignItems: "center",
     justifyContent: "center",
+    position: "relative", // So badge can be absolutely positioned
   },
   iconCircle: {
     width: 64,
@@ -177,8 +176,8 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: "absolute",
-    top: 4,
-    right: 4,
+    top: -8, // Move above the circle
+    right: -8, // Move to the right edge
     backgroundColor: "#2E7D32",
     borderRadius: 10,
     paddingHorizontal: 4,
@@ -186,6 +185,7 @@ const styles = StyleSheet.create({
     minWidth: 26,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 2, // Ensure it's above the circle
   },
   badgeText: {
     color: "#fff",

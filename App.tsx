@@ -6,6 +6,8 @@ import {
   StyleSheet,
   Image,
   StatusBar,
+  Pressable,
+  Modal,
 } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
 
@@ -21,6 +23,8 @@ export default function App() {
     clean: 1,
     rest: 1,
   });
+  const [foodSwatchOpen, setFoodSwatchOpen] = useState(false);
+  const [selectedFood, setSelectedFood] = useState<string | null>(null);
 
   // Slowly decrease each need over time
   useEffect(() => {
@@ -41,21 +45,90 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.content}>
-        <Image
-          source={require("./assets/zibu.png")}
-          style={styles.zibuImage}
-          resizeMode="contain"
-        />
+        <Pressable
+          onLongPress={() => {
+            if (selectedFood) {
+              setNeeds((prev) => ({
+                ...prev,
+                hunger: Math.min(1, prev.hunger + 0.2),
+              }));
+              setSelectedFood(null);
+            }
+          }}
+          delayLongPress={350}
+        >
+          <Image
+            source={require("./assets/zibu.png")}
+            style={styles.zibuImage}
+            resizeMode="contain"
+          />
+        </Pressable>
         <Text style={styles.title}>Zibu</Text>
         <Text style={styles.subtitle}>Your little space buddy</Text>
 
         {/* Status icons row */}
         <View style={styles.statusRow}>
           <StatusCircle iconName="smile" label="Happy" value={needs.mood} />
-          <StatusCircle iconName="utensils" label="Full" value={needs.hunger} />
+          <Pressable
+            onLongPress={() => setFoodSwatchOpen(true)}
+            delayLongPress={350}
+            style={{ flex: 1, alignItems: "center" }}
+          >
+            <StatusCircle
+              iconName="utensils"
+              label="Full"
+              value={needs.hunger}
+            />
+          </Pressable>
           <StatusCircle iconName="bath" label="Clean" value={needs.clean} />
           <StatusCircle iconName="bed" label="Rested" value={needs.rest} />
         </View>
+
+        {/* Food swatch modal */}
+        <Modal
+          visible={foodSwatchOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setFoodSwatchOpen(false)}
+        >
+          <Pressable
+            style={styles.swatchOverlay}
+            onPress={() => setFoodSwatchOpen(false)}
+          >
+            <Pressable style={styles.swatchContainer} onPress={() => {}}>
+              <Text style={styles.swatchTitle}>Select Food</Text>
+              <Pressable
+                style={[
+                  styles.swatchItem,
+                  selectedFood === "bottle" && styles.swatchItemSelected,
+                ]}
+                onPress={() => {
+                  setSelectedFood("bottle");
+                  setFoodSwatchOpen(false);
+                }}
+              >
+                <FontAwesome5
+                  name="wine-bottle"
+                  size={32}
+                  color={selectedFood === "bottle" ? "#fff" : "#6DD19C"}
+                />
+                <Text
+                  style={[
+                    styles.swatchItemLabel,
+                    selectedFood === "bottle" && { color: "#fff" },
+                  ]}
+                >
+                  Bottle
+                </Text>
+              </Pressable>
+              {selectedFood && (
+                <Text style={styles.feedInstructions}>
+                  Long hold Zibu to feed
+                </Text>
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         <Text style={styles.helperText}>
           These will slowly drain over time. Next step: filling them back up
@@ -227,5 +300,51 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 9,
     fontWeight: "700",
+  },
+  swatchOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  swatchContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    minWidth: 180,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  swatchTitle: {
+    fontWeight: "700",
+    fontSize: 16,
+    marginBottom: 16,
+    color: "#333",
+  },
+  swatchItem: {
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginVertical: 4,
+  },
+  swatchItemSelected: {
+    backgroundColor: "#6DD19C",
+  },
+  swatchItemLabel: {
+    fontSize: 13,
+    marginTop: 8,
+    color: "#333",
+    fontWeight: "500",
+  },
+  feedInstructions: {
+    fontSize: 11,
+    color: "#888",
+    marginTop: 12,
+    fontStyle: "italic",
   },
 });

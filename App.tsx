@@ -91,7 +91,7 @@ function StatusCircle({ iconName, label, value }: StatusCircleProps) {
     <View style={styles.statusItem}>
       <View style={styles.iconWrapper}>
         {/* Badge moved outside of iconCircle to avoid clipping */}
-        <View style={styles.badge}>
+        <View style={[styles.badge, { backgroundColor: fillColor }]}>
           <Text style={styles.badgeText}>{percent}%</Text>
         </View>
         {/* Background circle */}

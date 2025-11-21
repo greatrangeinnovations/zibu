@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   SafeAreaView,
   View,
@@ -8,6 +8,7 @@ import {
   StatusBar,
   Pressable,
   Modal,
+  PanResponder,
 } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
 
@@ -25,6 +26,32 @@ export default function App() {
   });
   const [foodSwatchOpen, setFoodSwatchOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState<string | null>(null);
+  const [cleanSwatchOpen, setCleanSwatchOpen] = useState(false);
+  const [selectedCleanTool, setSelectedCleanTool] = useState<string | null>(
+    null
+  );
+  const isCleaningRef = useRef(false);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => isCleaningRef.current,
+      onMoveShouldSetPanResponder: () => isCleaningRef.current,
+      onPanResponderRelease: (evt, gestureState) => {
+        // Detect horizontal swipe (distance > 20px)
+        if (Math.abs(gestureState.dx) > 20 && isCleaningRef.current) {
+          setNeeds((prev) => ({
+            ...prev,
+            clean: Math.min(1, prev.clean + 0.01),
+          }));
+        }
+      },
+    })
+  ).current;
+
+  // Update cleaning ref when tool selection changes
+  useEffect(() => {
+    isCleaningRef.current = selectedCleanTool !== null;
+  }, [selectedCleanTool]);
 
   // Slowly decrease each need over time
   useEffect(() => {
@@ -45,24 +72,28 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.content}>
-        <Pressable
-          onLongPress={() => {
-            if (selectedFood) {
-              setNeeds((prev) => ({
-                ...prev,
-                hunger: Math.min(1, prev.hunger + 0.2),
-              }));
-              setSelectedFood(null);
-            }
-          }}
-          delayLongPress={350}
-        >
+        <View {...panResponder.panHandlers}>
           <Image
             source={require("./assets/zibu.png")}
             style={styles.zibuImage}
             resizeMode="contain"
           />
-        </Pressable>
+          {selectedFood && (
+            <Pressable
+              onLongPress={() => {
+                setNeeds((prev) => ({
+                  ...prev,
+                  hunger: Math.min(1, prev.hunger + 0.2),
+                }));
+                setSelectedFood(null);
+              }}
+              delayLongPress={350}
+              style={StyleSheet.absoluteFill}
+            >
+              {/* Transparent overlay for feeding */}
+            </Pressable>
+          )}
+        </View>
         <Text style={styles.title}>Zibu</Text>
         <Text style={styles.subtitle}>Your little space buddy</Text>
 
@@ -80,7 +111,13 @@ export default function App() {
               value={needs.hunger}
             />
           </Pressable>
-          <StatusCircle iconName="bath" label="Clean" value={needs.clean} />
+          <Pressable
+            onLongPress={() => setCleanSwatchOpen(true)}
+            delayLongPress={350}
+            style={{ flex: 1, alignItems: "center" }}
+          >
+            <StatusCircle iconName="bath" label="Clean" value={needs.clean} />
+          </Pressable>
           <StatusCircle iconName="bed" label="Rested" value={needs.rest} />
         </View>
 
@@ -125,6 +162,52 @@ export default function App() {
                 <Text style={styles.feedInstructions}>
                   Long hold Zibu to feed
                 </Text>
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        {/* Clean swatch modal */}
+        <Modal
+          visible={cleanSwatchOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setCleanSwatchOpen(false)}
+        >
+          <Pressable
+            style={styles.swatchOverlay}
+            onPress={() => setCleanSwatchOpen(false)}
+          >
+            <Pressable style={styles.swatchContainer} onPress={() => {}}>
+              <Text style={styles.swatchTitle}>Select Cleaner</Text>
+              <Pressable
+                style={[
+                  styles.swatchItem,
+                  selectedCleanTool === "sponge" && styles.swatchItemSelected,
+                ]}
+                onPress={() => {
+                  setSelectedCleanTool("sponge");
+                  setCleanSwatchOpen(false);
+                }}
+              >
+                <FontAwesome5
+                  name="dot-circle"
+                  size={32}
+                  color={selectedCleanTool === "sponge" ? "#fff" : "#6DD19C"}
+                />
+                <Text
+                  style={[
+                    styles.swatchItemLabel,
+                    selectedCleanTool === "sponge" && {
+                      color: "#fff",
+                    },
+                  ]}
+                >
+                  Old Sponge
+                </Text>
+              </Pressable>
+              {selectedCleanTool && (
+                <Text style={styles.feedInstructions}>Swipe to wash</Text>
               )}
             </Pressable>
           </Pressable>

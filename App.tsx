@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   SafeAreaView,
   View,
@@ -7,8 +7,36 @@ import {
   Image,
   StatusBar,
 } from "react-native";
+import { FontAwesome5 } from "@expo/vector-icons";
+
+type NeedKey = "mood" | "hunger" | "clean" | "rest";
+
+const DECAY_PER_TICK = 0.02; // how much to lose each tick (0.02 = 2%)
+const TICK_MS = 5000; // how often to decay, in ms (5000 = 5 seconds)
 
 export default function App() {
+  const [needs, setNeeds] = useState<Record<NeedKey, number>>({
+    mood: 1,
+    hunger: 1,
+    clean: 1,
+    rest: 1,
+  });
+
+  // Slowly decrease each need over time
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNeeds((prev) => {
+        const next: Record<NeedKey, number> = { ...prev };
+        (Object.keys(next) as NeedKey[]).forEach((key) => {
+          next[key] = Math.max(0, next[key] - DECAY_PER_TICK);
+        });
+        return next;
+      });
+    }, TICK_MS);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -21,36 +49,49 @@ export default function App() {
         <Text style={styles.title}>Zibu</Text>
         <Text style={styles.subtitle}>Your little space buddy</Text>
 
-        {/* Placeholder bars for Hunger / Clean / Fun, etc. */}
-        <View style={styles.barsContainer}>
-          <View style={styles.barRow}>
-            <Text style={styles.barLabel}>Hunger</Text>
-            <View style={styles.barBackground}>
-              <View style={[styles.barFill, { flex: 0.7 }]} />
-            </View>
-          </View>
-
-          <View style={styles.barRow}>
-            <Text style={styles.barLabel}>Clean</Text>
-            <View style={styles.barBackground}>
-              <View style={[styles.barFill, { flex: 0.4 }]} />
-            </View>
-          </View>
-
-          <View style={styles.barRow}>
-            <Text style={styles.barLabel}>Fun</Text>
-            <View style={styles.barBackground}>
-              <View style={[styles.barFill, { flex: 0.9 }]} />
-            </View>
-          </View>
+        {/* Status icons row */}
+        <View style={styles.statusRow}>
+          <StatusCircle iconName="smile" label="Happy" value={needs.mood} />
+          <StatusCircle iconName="utensils" label="Full" value={needs.hunger} />
+          <StatusCircle iconName="bath" label="Clean" value={needs.clean} />
+          <StatusCircle iconName="bed" label="Rested" value={needs.rest} />
         </View>
 
         <Text style={styles.helperText}>
-          Next step: hold to feed, swipe to wash, shake to play. We’ll wire
-          those up soon.
+          These will slowly drain over time. Next step: filling them back up
+          with hold-to-feed, swipe-to-wash, and shake-to-play.
         </Text>
       </View>
     </SafeAreaView>
+  );
+}
+
+type StatusCircleProps = {
+  iconName: React.ComponentProps<typeof FontAwesome5>["name"];
+  label: string;
+  value: number; // 0–1
+};
+
+function StatusCircle({ iconName, label, value }: StatusCircleProps) {
+  const percent = Math.round(value * 100);
+
+  return (
+    <View style={styles.statusItem}>
+      <View style={styles.iconWrapper}>
+        {/* Background circle */}
+        <View style={styles.iconCircle}>
+          {/* Green fill that drains from bottom to top */}
+          <View style={styles.iconFillContainer}>
+            <View style={[styles.iconFill, { height: `${percent}%` }]} />
+          </View>
+          {/* Icon on top */}
+          <View style={styles.iconContent}>
+            <FontAwesome5 name={iconName} size={24} color="#333" />
+          </View>
+        </View>
+      </View>
+      <Text style={styles.statusLabel}>{label}</Text>
+    </View>
   );
 }
 
@@ -79,31 +120,48 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: "#666",
   },
-  barsContainer: {
+  statusRow: {
     marginTop: 32,
     width: "100%",
-    gap: 12,
-  },
-  barRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  statusItem: {
     alignItems: "center",
-    gap: 8,
-  },
-  barLabel: {
-    width: 70,
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  barBackground: {
     flex: 1,
-    height: 14,
-    borderRadius: 999,
-    backgroundColor: "#E0E8FF",
+  },
+  iconWrapper: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#E2E6FF",
     overflow: "hidden",
+    position: "relative",
   },
-  barFill: {
-    flex: 1,
+  iconFillContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  iconFill: {
     backgroundColor: "#6DD19C",
+    opacity: 0.75,
+    borderRadius: 32,
+  },
+  iconContent: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statusLabel: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#555",
   },
   helperText: {
     marginTop: 32,

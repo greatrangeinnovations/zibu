@@ -84,9 +84,15 @@ function StatusCircle({ iconName, label, value }: StatusCircleProps) {
           <View style={styles.iconFillContainer}>
             <View style={[styles.iconFill, { height: `${percent}%` }]} />
           </View>
+
           {/* Icon on top */}
           <View style={styles.iconContent}>
             <FontAwesome5 name={iconName} size={24} color="#333" />
+          </View>
+
+          {/* Percentage badge */}
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{percent}%</Text>
           </View>
         </View>
       </View>
@@ -168,5 +174,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#888",
     textAlign: "center",
+  },
+  badge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "#2E7D32",
+    borderRadius: 10,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    minWidth: 26,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "700",
   },
 });

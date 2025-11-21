@@ -75,6 +75,18 @@ type StatusCircleProps = {
 function StatusCircle({ iconName, label, value }: StatusCircleProps) {
   const percent = Math.round(value * 100);
 
+  // Determine fill color based on value
+  let fillColor = "#6DD19C"; // green
+  if (value >= 0.75) {
+    fillColor = "#6DD19C"; // green
+  } else if (value >= 0.5) {
+    fillColor = "#F4D35E"; // yellow
+  } else if (value >= 0.25) {
+    fillColor = "#FFA552"; // orange
+  } else {
+    fillColor = "#E94F37"; // red
+  }
+
   return (
     <View style={styles.statusItem}>
       <View style={styles.iconWrapper}>
@@ -84,13 +96,23 @@ function StatusCircle({ iconName, label, value }: StatusCircleProps) {
         </View>
         {/* Background circle */}
         <View style={styles.iconCircle}>
-          {/* Green fill that drains from bottom to top */}
-          <View style={styles.iconFillContainer}>
-            <View style={[styles.iconFill, { height: `${percent}%` }]} />
-          </View>
-          {/* Icon on top */}
+          {/* Icon on top, with a little opacity so color shows through */}
           <View style={styles.iconContent}>
-            <FontAwesome5 name={iconName} size={24} color="#333" />
+            <FontAwesome5
+              name={iconName}
+              size={24}
+              color="#333"
+              style={{ opacity: 0.85 }}
+            />
+          </View>
+          {/* Color fill overlays the icon, color based on value */}
+          <View style={styles.iconFillContainer} pointerEvents="none">
+            <View
+              style={[
+                styles.iconFill,
+                { height: `${percent}%`, backgroundColor: fillColor },
+              ]}
+            />
           </View>
         </View>
       </View>
@@ -152,16 +174,30 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    zIndex: 2,
+    width: "100%",
+    height: "100%",
   },
   iconFill: {
-    backgroundColor: "#6DD19C",
-    opacity: 0.75,
-    borderRadius: 32,
+    // backgroundColor set dynamically
+    opacity: 0.6,
+    width: "100%",
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    // No borderRadius for straight edge
   },
   iconContent: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
   },
   statusLabel: {
     marginTop: 8,

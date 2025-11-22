@@ -149,6 +149,7 @@ export default function App() {
           {selectedFood && (
             <Pressable
               onLongPress={() => {
+                setIsSleeping(false); // Stop sleeping if feeding
                 setNeeds((prev) => ({
                   ...prev,
                   hunger: Math.min(1, prev.hunger + 0.2),
@@ -318,6 +319,7 @@ export default function App() {
                 ]}
                 onPress={() => {
                   setSelectedCleanTool("sponge");
+                  setIsSleeping(false); // Stop sleeping if cleaning
                   setCleanSwatchOpen(false);
                 }}
               >
@@ -364,6 +366,7 @@ export default function App() {
                 ]}
                 onPress={() => {
                   setSelectedToy("ball");
+                  setIsSleeping(false); // Stop sleeping if playing
                   setToySwatchOpen(false);
                 }}
               >

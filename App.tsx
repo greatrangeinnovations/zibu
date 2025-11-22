@@ -152,9 +152,9 @@ export default function App() {
                 setIsSleeping(false); // Stop sleeping if feeding
                 setNeeds((prev) => ({
                   ...prev,
-                  hunger: Math.min(1, prev.hunger + 0.2),
+                  hunger: Math.min(1, prev.hunger + 0.01), // Increase by 1%
                 }));
-                setSelectedFood(null);
+                // setSelectedFood(null); // Do not clear food selection after feeding
               }}
               delayLongPress={350}
               style={StyleSheet.absoluteFill}

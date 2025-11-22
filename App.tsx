@@ -69,6 +69,9 @@ export default function App() {
   // Update playing ref when toy selection changes
   useEffect(() => {
     isPlayingRef.current = selectedToy !== null;
+
+    // Add a timeout to check if it stays the same
+    setTimeout(() => {}, 1000);
   }, [selectedToy]);
 
   // Accelerometer listener for shake detection
@@ -76,20 +79,20 @@ export default function App() {
     let subscription: any;
 
     const setupAccelerometer = async () => {
-      await Accelerometer.setUpdateInterval(50);
+      await Accelerometer.setUpdateInterval(100);
       subscription = Accelerometer.addListener(({ x, y, z }) => {
         const acceleration = Math.sqrt(x * x + y * y + z * z);
         const now = Date.now();
 
         if (
-          acceleration > shakeThresholdRef.current &&
+          acceleration > 3 &&
           isPlayingRef.current &&
           now - lastShakeRef.current > 500
         ) {
           lastShakeRef.current = now;
           setNeeds((prev) => ({
             ...prev,
-            mood: Math.min(1, prev.mood + 0.15),
+            mood: Math.min(1, prev.mood + 0.01),
           }));
           console.log(
             "Shake detected! Mood increased. Acceleration:",

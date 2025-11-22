@@ -11,6 +11,7 @@ import {
   PanResponder,
 } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
+import { Accelerometer } from "expo-sensors";
 
 type NeedKey = "mood" | "hunger" | "clean" | "rest";
 
@@ -30,7 +31,12 @@ export default function App() {
   const [selectedCleanTool, setSelectedCleanTool] = useState<string | null>(
     null
   );
+  const [toySwatchOpen, setToySwatchOpen] = useState(false);
+  const [selectedToy, setSelectedToy] = useState<string | null>(null);
   const isCleaningRef = useRef(false);
+  const isPlayingRef = useRef(false);
+  const lastShakeRef = useRef<number>(0);
+  const shakeThresholdRef = useRef(35);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -52,6 +58,46 @@ export default function App() {
   useEffect(() => {
     isCleaningRef.current = selectedCleanTool !== null;
   }, [selectedCleanTool]);
+
+  // Update playing ref when toy selection changes
+  useEffect(() => {
+    isPlayingRef.current = selectedToy !== null;
+  }, [selectedToy]);
+
+  // Accelerometer listener for shake detection
+  useEffect(() => {
+    let subscription: any;
+
+    const setupAccelerometer = async () => {
+      await Accelerometer.setUpdateInterval(50);
+      subscription = Accelerometer.addListener(({ x, y, z }) => {
+        const acceleration = Math.sqrt(x * x + y * y + z * z);
+        const now = Date.now();
+
+        if (
+          acceleration > shakeThresholdRef.current &&
+          isPlayingRef.current &&
+          now - lastShakeRef.current > 500
+        ) {
+          lastShakeRef.current = now;
+          setNeeds((prev) => ({
+            ...prev,
+            mood: Math.min(1, prev.mood + 0.15),
+          }));
+          console.log(
+            "Shake detected! Mood increased. Acceleration:",
+            acceleration
+          );
+        }
+      });
+    };
+
+    setupAccelerometer();
+
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
 
   // Slowly decrease each need over time
   useEffect(() => {
@@ -99,7 +145,13 @@ export default function App() {
 
         {/* Status icons row */}
         <View style={styles.statusRow}>
-          <StatusCircle iconName="smile" label="Happy" value={needs.mood} />
+          <Pressable
+            onLongPress={() => setToySwatchOpen(true)}
+            delayLongPress={350}
+            style={{ flex: 1, alignItems: "center" }}
+          >
+            <StatusCircle iconName="smile" label="Happy" value={needs.mood} />
+          </Pressable>
           <Pressable
             onLongPress={() => setFoodSwatchOpen(true)}
             delayLongPress={350}
@@ -213,9 +265,53 @@ export default function App() {
           </Pressable>
         </Modal>
 
+        {/* Toy swatch modal */}
+        <Modal
+          visible={toySwatchOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setToySwatchOpen(false)}
+        >
+          <Pressable
+            style={styles.swatchOverlay}
+            onPress={() => setToySwatchOpen(false)}
+          >
+            <Pressable style={styles.swatchContainer} onPress={() => {}}>
+              <Text style={styles.swatchTitle}>Select Toy</Text>
+              <Pressable
+                style={[
+                  styles.swatchItem,
+                  selectedToy === "ball" && styles.swatchItemSelected,
+                ]}
+                onPress={() => {
+                  setSelectedToy("ball");
+                  setToySwatchOpen(false);
+                }}
+              >
+                <FontAwesome5
+                  name="circle"
+                  size={32}
+                  color={selectedToy === "ball" ? "#fff" : "#6DD19C"}
+                />
+                <Text
+                  style={[
+                    styles.swatchItemLabel,
+                    selectedToy === "ball" && { color: "#fff" },
+                  ]}
+                >
+                  Deflated Ball
+                </Text>
+              </Pressable>
+              {selectedToy && (
+                <Text style={styles.feedInstructions}>Shake to play</Text>
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
+
         <Text style={styles.helperText}>
-          These will slowly drain over time. Next step: filling them back up
-          with hold-to-feed, swipe-to-wash, and shake-to-play.
+          Needs slowly drain. Hold to feed, swipe to wash, select a toy and
+          shake to play!
         </Text>
       </View>
     </SafeAreaView>

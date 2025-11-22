@@ -384,6 +384,32 @@ export default function App() {
             </Pressable>
           </Pressable>
         </Modal>
+
+        {/* Add hints for interactions based on need levels */}
+        {needs.hunger < 0.7 && (
+          <View style={[styles.tooltip, { left: "43%" }]}>
+            <Text style={styles.tooltipText}>Tap and hold to feed</Text>
+            <View style={styles.tooltipArrow} />
+          </View>
+        )}
+        {needs.mood < 0.7 && (
+          <View style={[styles.tooltip, { left: "19%" }]}>
+            <Text style={styles.tooltipText}>Shake to play</Text>
+            <View style={styles.tooltipArrow} />
+          </View>
+        )}
+        {needs.clean < 0.7 && (
+          <View style={[styles.tooltip, { left: "75%" }]}>
+            <Text style={styles.tooltipText}>Swipe to wash</Text>
+            <View style={styles.tooltipArrow} />
+          </View>
+        )}
+        {needs.rest < 0.7 && (
+          <View style={[styles.tooltip, { left: "87.5%" }]}>
+            <Text style={styles.tooltipText}>Put to sleep</Text>
+            <View style={styles.tooltipArrow} />
+          </View>
+        )}
       </View>
 
       {/* Status icons row (meters) above nav */}
@@ -727,5 +753,33 @@ const styles = StyleSheet.create({
     color: "#888",
     marginTop: 12,
     fontStyle: "italic",
+  },
+  tooltip: {
+    position: "absolute",
+    bottom: 10, // Adjust to position above meters
+    alignItems: "center",
+    transform: [{ translateX: -50 }],
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    padding: 6,
+    borderRadius: 6,
+    zIndex: 20,
+  },
+  tooltipText: {
+    color: "#fff",
+    fontSize: 9,
+    textAlign: "center",
+  },
+  tooltipArrow: {
+    position: "absolute",
+    bottom: -6, // Position below the tooltip box
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 6,
+    borderStyle: "solid",
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    borderTopColor: "rgba(0, 0, 0, 0.8)",
   },
 });

@@ -42,6 +42,7 @@ export default function App() {
   const isPlayingRef = useRef(false);
   const lastShakeRef = useRef<number>(0);
   const shakeThresholdRef = useRef(35);
+  const feedIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [coinModalOpen, setCoinModalOpen] = useState(false);
   const [coins, setCoins] = useState(1250);
 
@@ -148,15 +149,25 @@ export default function App() {
           />
           {selectedFood && (
             <Pressable
-              onLongPress={() => {
+              onPressIn={() => {
                 setIsSleeping(false); // Stop sleeping if feeding
-                setNeeds((prev) => ({
-                  ...prev,
-                  hunger: Math.min(1, prev.hunger + 0.01), // Increase by 1%
-                }));
-                // setSelectedFood(null); // Do not clear food selection after feeding
+                // Start feeding interval - increase by 1% per second while holding
+                if (!feedIntervalRef.current) {
+                  feedIntervalRef.current = setInterval(() => {
+                    setNeeds((prev) => ({
+                      ...prev,
+                      hunger: Math.min(1, prev.hunger + 0.01),
+                    }));
+                  }, 1000);
+                }
               }}
-              delayLongPress={350}
+              onPressOut={() => {
+                // Stop feeding interval when release
+                if (feedIntervalRef.current) {
+                  clearInterval(feedIntervalRef.current);
+                  feedIntervalRef.current = null;
+                }
+              }}
               style={StyleSheet.absoluteFill}
             >
               {/* Transparent overlay for feeding */}

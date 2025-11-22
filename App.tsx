@@ -405,7 +405,7 @@ export default function App() {
           </View>
         )}
         {needs.rest < 0.7 && (
-          <View style={[styles.tooltip, { left: "87.5%" }]}>
+          <View style={[styles.tooltip, { left: "105%" }]}>
             <Text style={styles.tooltipText}>Put to sleep</Text>
             <View style={styles.tooltipArrow} />
           </View>
@@ -609,12 +609,13 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-end", // Move Zibu lower for better vertical centering
     paddingHorizontal: 24,
+    paddingBottom: 60, // Add more space below
   },
   zibuImage: {
-    width: 220,
-    height: 220,
+    width: 300, // Slightly bigger
+    height: 300, // Slightly bigger
   },
   title: {
     marginTop: 16,

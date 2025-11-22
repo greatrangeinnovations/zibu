@@ -15,8 +15,8 @@ import { Accelerometer } from "expo-sensors";
 
 type NeedKey = "mood" | "hunger" | "clean" | "rest";
 
-const DECAY_PER_TICK = 0.02; // how much to lose each tick (0.02 = 2%)
-const TICK_MS = 5000; // how often to decay, in ms (5000 = 5 seconds)
+const DECAY_PER_TICK = 0.01; // how much to lose each tick (0.01 = 1%)
+const TICK_MS = 10000; // how often to decay, in ms (10000 = 10 seconds)
 
 export default function App() {
   const [needs, setNeeds] = useState<Record<NeedKey, number>>({

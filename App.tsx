@@ -160,41 +160,6 @@ export default function App() {
         <Text style={styles.title}>Zibu</Text>
         <Text style={styles.subtitle}>Your little space buddy</Text>
 
-        {/* Status icons row */}
-        <View style={styles.statusRow}>
-          <Pressable
-            onLongPress={() => setToySwatchOpen(true)}
-            delayLongPress={350}
-            style={{ flex: 1, alignItems: "center" }}
-          >
-            <StatusCircle iconName="smile" label="Happy" value={needs.mood} />
-          </Pressable>
-          <Pressable
-            onLongPress={() => setFoodSwatchOpen(true)}
-            delayLongPress={350}
-            style={{ flex: 1, alignItems: "center" }}
-          >
-            <StatusCircle
-              iconName="utensils"
-              label="Full"
-              value={needs.hunger}
-            />
-          </Pressable>
-          <Pressable
-            onLongPress={() => setCleanSwatchOpen(true)}
-            delayLongPress={350}
-            style={{ flex: 1, alignItems: "center" }}
-          >
-            <StatusCircle iconName="bath" label="Clean" value={needs.clean} />
-          </Pressable>
-          <Pressable
-            onLongPress={() => setSleepSwatchOpen(true)}
-            delayLongPress={350}
-            style={{ flex: 1, alignItems: "center" }}
-          >
-            <StatusCircle iconName="bed" label="Rested" value={needs.rest} />
-          </Pressable>
-        </View>
         {/* Sleep swatch modal */}
         <Modal
           visible={sleepSwatchOpen}
@@ -378,6 +343,39 @@ export default function App() {
           </Pressable>
         </Modal>
       </View>
+
+      {/* Status icons row (meters) above nav */}
+      <View style={styles.statusRow}>
+        <Pressable
+          onLongPress={() => setToySwatchOpen(true)}
+          delayLongPress={350}
+          style={{ flex: 1, alignItems: "center" }}
+        >
+          <StatusCircle iconName="smile" label="Happy" value={needs.mood} />
+        </Pressable>
+        <Pressable
+          onLongPress={() => setFoodSwatchOpen(true)}
+          delayLongPress={350}
+          style={{ flex: 1, alignItems: "center" }}
+        >
+          <StatusCircle iconName="utensils" label="Full" value={needs.hunger} />
+        </Pressable>
+        <Pressable
+          onLongPress={() => setCleanSwatchOpen(true)}
+          delayLongPress={350}
+          style={{ flex: 1, alignItems: "center" }}
+        >
+          <StatusCircle iconName="bath" label="Clean" value={needs.clean} />
+        </Pressable>
+        <Pressable
+          onLongPress={() => setSleepSwatchOpen(true)}
+          delayLongPress={350}
+          style={{ flex: 1, alignItems: "center" }}
+        >
+          <StatusCircle iconName="bed" label="Rested" value={needs.rest} />
+        </Pressable>
+      </View>
+
       {/* Bottom navigation menu */}
       <View style={styles.bottomNav}>
         <Pressable style={styles.navItem}>
@@ -491,7 +489,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     alignItems: "center",
-    paddingTop: 40,
+    justifyContent: "center",
     paddingHorizontal: 24,
   },
   zibuImage: {
@@ -509,7 +507,7 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   statusRow: {
-    marginTop: 32,
+    marginBottom: 60,
     width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",

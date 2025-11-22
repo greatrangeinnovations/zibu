@@ -42,6 +42,8 @@ export default function App() {
   const isPlayingRef = useRef(false);
   const lastShakeRef = useRef<number>(0);
   const shakeThresholdRef = useRef(35);
+  const [coinModalOpen, setCoinModalOpen] = useState(false);
+  const [coins, setCoins] = useState(1250);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -157,6 +159,46 @@ export default function App() {
             </Pressable>
           )}
         </View>
+        {/* Top bar with coin and gear */}
+        <View style={styles.topBar}>
+          <View style={styles.coinLabel}>
+            <FontAwesome5
+              name="coins"
+              size={20}
+              color="#F4D35E"
+              style={{ marginRight: 6 }}
+            />
+            <Text style={styles.coinText}>{coins.toLocaleString()}</Text>
+          </View>
+          <Pressable
+            style={styles.gearButton}
+            onPress={() => setCoinModalOpen(true)}
+          >
+            <FontAwesome5 name="cog" size={22} color="#888" />
+          </Pressable>
+        </View>
+        <Modal
+          visible={coinModalOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setCoinModalOpen(false)}
+        >
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setCoinModalOpen(false)}
+          >
+            <View style={styles.gearModalContent}>
+              <Text
+                style={{ fontWeight: "700", fontSize: 18, marginBottom: 12 }}
+              >
+                Settings
+              </Text>
+              <Text style={{ color: "#888", fontSize: 14 }}>
+                Coming soon...
+              </Text>
+            </View>
+          </Pressable>
+        </Modal>
         <Text style={styles.title}>Zibu</Text>
         <Text style={styles.subtitle}>Your little space buddy</Text>
 
@@ -459,6 +501,58 @@ function StatusCircle({ iconName, label, value }: StatusCircleProps) {
 }
 
 const styles = StyleSheet.create({
+  topBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 0,
+    paddingTop: 10, // Adjusted to align with the very top
+    paddingBottom: 2,
+    backgroundColor: "transparent",
+    zIndex: 10,
+    position: "absolute", // Ensure it stays at the top
+    top: 0, // Position at the very top
+    width: "100%", // Span the entire width
+  },
+  coinLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.85)",
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  coinText: {
+    fontWeight: "700",
+    color: "#333",
+    fontSize: 16,
+    letterSpacing: 0.2,
+  },
+  gearButton: {
+    padding: 8,
+    borderRadius: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  gearModalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 28,
+    alignItems: "center",
+    minWidth: 220,
+    shadowColor: "#000",
+    shadowOpacity: 0.13,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+  },
   bottomNav: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -507,7 +601,7 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   statusRow: {
-    marginBottom: 60,
+    marginBottom: 100,
     width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",

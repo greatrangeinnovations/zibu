@@ -378,6 +378,25 @@ export default function App() {
           </Pressable>
         </Modal>
       </View>
+      {/* Bottom navigation menu */}
+      <View style={styles.bottomNav}>
+        <Pressable style={styles.navItem}>
+          <FontAwesome5 name="home" size={24} color="#6DD19C" />
+          <Text style={[styles.navLabel, { color: '#6DD19C', fontWeight: '700' }]}>Home</Text>
+        </Pressable>
+        <Pressable style={[styles.navItem, styles.navItemDisabled]} disabled>
+          <FontAwesome5 name="shopping-bag" size={24} color="#bbb" />
+          <Text style={styles.navLabel}>Shop</Text>
+        </Pressable>
+        <Pressable style={[styles.navItem, styles.navItemDisabled]} disabled>
+          <FontAwesome5 name="history" size={24} color="#bbb" />
+          <Text style={styles.navLabel}>History</Text>
+        </Pressable>
+        <Pressable style={[styles.navItem, styles.navItemDisabled]} disabled>
+          <FontAwesome5 name="user" size={24} color="#bbb" />
+          <Text style={styles.navLabel}>Profile</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
@@ -438,6 +457,29 @@ function StatusCircle({ iconName, label, value }: StatusCircleProps) {
 }
 
 const styles = StyleSheet.create({
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    backgroundColor: '#fff',
+  },
+  navItem: {
+    flex: 1,
+    alignItems: 'center',
+    opacity: 1,
+    paddingVertical: 4,
+  },
+  navItemDisabled: {
+    opacity: 0.5,
+  },
+  navLabel: {
+    fontSize: 12,
+    color: '#bbb',
+    marginTop: 2,
+  },
   container: {
     flex: 1,
     backgroundColor: "#F6F6FF",

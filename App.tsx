@@ -33,6 +33,11 @@ export default function App() {
   );
   const [toySwatchOpen, setToySwatchOpen] = useState(false);
   const [selectedToy, setSelectedToy] = useState<string | null>(null);
+  const [sleepSwatchOpen, setSleepSwatchOpen] = useState(false);
+  const [selectedSleepItem, setSelectedSleepItem] = useState<string | null>(
+    null
+  );
+  const [isSleeping, setIsSleeping] = useState(false);
   const isCleaningRef = useRef(false);
   const isPlayingRef = useRef(false);
   const lastShakeRef = useRef<number>(0);
@@ -98,6 +103,18 @@ export default function App() {
       subscription?.remove();
     };
   }, []);
+
+  // Sleep effect: increase rested by 1% per second when sleeping
+  useEffect(() => {
+    if (!isSleeping) return;
+    const interval = setInterval(() => {
+      setNeeds((prev) => ({
+        ...prev,
+        rest: Math.min(1, prev.rest + 0.01),
+      }));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isSleeping]);
 
   // Slowly decrease each need over time
   useEffect(() => {
@@ -170,8 +187,60 @@ export default function App() {
           >
             <StatusCircle iconName="bath" label="Clean" value={needs.clean} />
           </Pressable>
-          <StatusCircle iconName="bed" label="Rested" value={needs.rest} />
+          <Pressable
+            onLongPress={() => setSleepSwatchOpen(true)}
+            delayLongPress={350}
+            style={{ flex: 1, alignItems: "center" }}
+          >
+            <StatusCircle iconName="bed" label="Rested" value={needs.rest} />
+          </Pressable>
         </View>
+        {/* Sleep swatch modal */}
+        <Modal
+          visible={sleepSwatchOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setSleepSwatchOpen(false)}
+        >
+          <Pressable
+            style={styles.swatchOverlay}
+            onPress={() => setSleepSwatchOpen(false)}
+          >
+            <Pressable style={styles.swatchContainer} onPress={() => {}}>
+              <Text style={styles.swatchTitle}>Select Blanket</Text>
+              <Pressable
+                style={[
+                  styles.swatchItem,
+                  selectedSleepItem === "blanket" && styles.swatchItemSelected,
+                ]}
+                onPress={() => {
+                  setSelectedSleepItem("blanket");
+                  setSleepSwatchOpen(false);
+                  setIsSleeping(true);
+                }}
+              >
+                <FontAwesome5
+                  name="dot-circle"
+                  size={32}
+                  color={selectedSleepItem === "blanket" ? "#fff" : "#6DD19C"}
+                />
+                <Text
+                  style={[
+                    styles.swatchItemLabel,
+                    selectedSleepItem === "blanket" && { color: "#fff" },
+                  ]}
+                >
+                  Old Blanket
+                </Text>
+              </Pressable>
+              {selectedSleepItem && isSleeping && (
+                <Text style={styles.feedInstructions}>
+                  Zibu is sleeping... (+1%/sec)
+                </Text>
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         {/* Food swatch modal */}
         <Modal

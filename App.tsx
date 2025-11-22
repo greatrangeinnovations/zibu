@@ -377,11 +377,6 @@ export default function App() {
             </Pressable>
           </Pressable>
         </Modal>
-
-        <Text style={styles.helperText}>
-          Needs slowly drain. Hold to feed, swipe to wash, select a toy and
-          shake to play!
-        </Text>
       </View>
     </SafeAreaView>
   );

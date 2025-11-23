@@ -14,9 +14,9 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import { Accelerometer } from "expo-sensors";
 import { Image as ExpoImage } from "expo-image";
 
-const FRAME_COUNT = 84;
-const COLS = 12; // 7040px / 640px per frame
-const ROWS = 7; // 4480px / 640px per frame
+const FRAME_COUNT = 8;
+const COLS = 3; // 7040px / 640px per frame
+const ROWS = 3; // 4480px / 640px per frame
 const DISPLAY_SIZE = 300; // Display at 300x300
 const FPS = 20; // Frame rate
 
@@ -70,40 +70,74 @@ export default function App() {
     })
   ).current;
 
-  // Animation: play frames for ~5 seconds, then pause for 10 seconds, repeat
+  // Animation: alternate between single and double blink
   useEffect(() => {
     let isPlaying = true;
+    let timeoutId: NodeJS.Timeout | null = null;
 
-    const playAnimation = () => {
-      let startTime = Date.now();
-      const totalDuration = (FRAME_COUNT / FPS) * 1000; // ~5 seconds for 76 frames at 15 FPS
+    const playBlink = (count: number, speed: number = FPS) => {
+      return new Promise<void>((resolve) => {
+        let blinkCount = 0;
 
-      const animate = () => {
-        if (!isPlaying) return;
+        const playOnce = () => {
+          let startTime = Date.now();
+          const animate = () => {
+            if (!isPlaying) return;
+            const elapsed = Date.now() - startTime;
+            const expectedFrame = Math.floor((elapsed / 1000) * speed);
 
-        const elapsed = Date.now() - startTime;
-        const expectedFrame = Math.floor((elapsed / 1000) * FPS);
+            if (expectedFrame < FRAME_COUNT) {
+              setFrame(expectedFrame);
+              requestAnimationFrame(animate);
+            } else {
+              setFrame(0);
+              blinkCount++;
 
-        if (expectedFrame < FRAME_COUNT) {
-          setFrame(expectedFrame);
-          requestAnimationFrame(animate);
-        } else {
-          // Animation finished, set to first frame and wait 10 seconds
-          setFrame(0);
-          // Schedule next animation loop
-          setTimeout(playAnimation, 3000);
-        }
-      };
+              if (blinkCount < count) {
+                // Wait 200ms between blinks, then play again
+                timeoutId = setTimeout(playOnce, 200);
+              } else {
+                // All blinks done
+                resolve();
+              }
+            }
+          };
+          animate();
+        };
 
-      animate();
+        playOnce();
+      });
     };
 
-    // Start animation after short delay
-    const timeout = setTimeout(playAnimation, 500);
+    const startAnimation = async () => {
+      while (isPlaying) {
+        // Single blink at normal speed
+        await playBlink(1, FPS);
+        if (!isPlaying) break;
+
+        // Wait 2 seconds
+        await new Promise((resolve) => {
+          timeoutId = setTimeout(resolve, 2000);
+        });
+        if (!isPlaying) break;
+
+        // Double blink at faster speed (25 FPS instead of 15)
+        await playBlink(2, 26);
+        if (!isPlaying) break;
+
+        // Wait 5 seconds
+        await new Promise((resolve) => {
+          timeoutId = setTimeout(resolve, 5000);
+        });
+      }
+    };
+
+    const timeout = setTimeout(() => startAnimation(), 500);
 
     return () => {
       isPlaying = false;
-      clearTimeout(timeout);
+      if (timeout) clearTimeout(timeout);
+      if (timeoutId) clearTimeout(timeoutId);
     };
   }, []);
 
@@ -192,7 +226,7 @@ export default function App() {
             }}
           >
             <ExpoImage
-              source={require("./assets/happy-blink/zibu_spritesheet.png")}
+              source={require("./assets/happy-blink/blink_spritesheet.png")}
               style={{
                 width: DISPLAY_SIZE * COLS,
                 height: DISPLAY_SIZE * ROWS,

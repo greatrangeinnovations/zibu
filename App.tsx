@@ -12,6 +12,13 @@ import {
 } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { Accelerometer } from "expo-sensors";
+import { Image as ExpoImage } from "expo-image";
+
+const FRAME_COUNT = 84;
+const COLS = 12; // 7040px / 640px per frame
+const ROWS = 7; // 4480px / 640px per frame
+const DISPLAY_SIZE = 300; // Display at 300x300
+const FPS = 20; // Frame rate
 
 type NeedKey = "mood" | "hunger" | "clean" | "rest";
 
@@ -45,6 +52,7 @@ export default function App() {
   const feedIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [coinModalOpen, setCoinModalOpen] = useState(false);
   const [coins, setCoins] = useState(1250);
+  const [frame, setFrame] = useState(0);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -61,6 +69,43 @@ export default function App() {
       },
     })
   ).current;
+
+  // Animation: play frames for ~5 seconds, then pause for 10 seconds, repeat
+  useEffect(() => {
+    let isPlaying = true;
+
+    const playAnimation = () => {
+      let startTime = Date.now();
+      const totalDuration = (FRAME_COUNT / FPS) * 1000; // ~5 seconds for 76 frames at 15 FPS
+
+      const animate = () => {
+        if (!isPlaying) return;
+
+        const elapsed = Date.now() - startTime;
+        const expectedFrame = Math.floor((elapsed / 1000) * FPS);
+
+        if (expectedFrame < FRAME_COUNT) {
+          setFrame(expectedFrame);
+          requestAnimationFrame(animate);
+        } else {
+          // Animation finished, set to first frame and wait 10 seconds
+          setFrame(0);
+          // Schedule next animation loop
+          setTimeout(playAnimation, 3000);
+        }
+      };
+
+      animate();
+    };
+
+    // Start animation after short delay
+    const timeout = setTimeout(playAnimation, 500);
+
+    return () => {
+      isPlaying = false;
+      clearTimeout(timeout);
+    };
+  }, []);
 
   // Update cleaning ref when tool selection changes
   useEffect(() => {
@@ -95,10 +140,6 @@ export default function App() {
             ...prev,
             mood: Math.min(1, prev.mood + 0.01),
           }));
-          console.log(
-            "Shake detected! Mood increased. Acceleration:",
-            acceleration
-          );
         }
       });
     };
@@ -142,11 +183,26 @@ export default function App() {
       <StatusBar barStyle="dark-content" />
       <View style={styles.content}>
         <View {...panResponder.panHandlers}>
-          <Image
-            source={require("./assets/zibu.png")}
-            style={styles.zibuImage}
-            resizeMode="contain"
-          />
+          <View
+            style={{
+              width: DISPLAY_SIZE,
+              height: DISPLAY_SIZE,
+              overflow: "hidden",
+              borderRadius: 12,
+            }}
+          >
+            <ExpoImage
+              source={require("./assets/happy-blink/zibu_spritesheet.png")}
+              style={{
+                width: DISPLAY_SIZE * COLS,
+                height: DISPLAY_SIZE * ROWS,
+                marginLeft: -((frame % COLS) * DISPLAY_SIZE),
+                marginTop: -(Math.floor(frame / COLS) * DISPLAY_SIZE),
+              }}
+              contentFit="cover"
+              cachePolicy="memory"
+            />
+          </View>
           {selectedFood && (
             <Pressable
               onPressIn={() => {
@@ -621,7 +677,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: "#F6F6FF",
+    backgroundColor: "#F6F6F6",
   },
   content: {
     flex: 1,

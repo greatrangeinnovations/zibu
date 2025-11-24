@@ -27,6 +27,12 @@ const SLEEP_COLS = 3; // 3 columns
 const SLEEP_ROWS = 1; // 1 row
 const SLEEP_FPS = 15;
 
+// Eat animation
+const EAT_FRAME_COUNT = 4;
+const EAT_COLS = 4; // 4 columns
+const EAT_ROWS = 1; // 1 row
+const EAT_FPS = 15;
+
 type NeedKey = "mood" | "hunger" | "clean" | "rest";
 
 const DECAY_PER_TICK = 0.01; // how much to lose each tick (0.01 = 1%)
@@ -34,10 +40,10 @@ const TICK_MS = 10000; // how often to decay, in ms (10000 = 10 seconds)
 
 export default function App() {
   const [needs, setNeeds] = useState<Record<NeedKey, number>>({
-    mood: 1,
-    hunger: 1,
-    clean: 1,
-    rest: 1,
+    mood: 0.5,
+    hunger: 0.5,
+    clean: 0.5,
+    rest: 0.5,
   });
   const [foodSwatchOpen, setFoodSwatchOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState<string | null>(null);
@@ -61,6 +67,9 @@ export default function App() {
   const [coins, setCoins] = useState(1250);
   const [frame, setFrame] = useState(0);
   const [sleepFrame, setSleepFrame] = useState(0);
+  const [eatFrame, setEatFrame] = useState(0);
+  const isFeedingRef = useRef(false);
+  const [isFeeding, setIsFeeding] = useState(false);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -237,6 +246,34 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isSleeping]);
 
+  // Eat animation effect - loops continuously while feeding
+  useEffect(() => {
+    if (!isFeeding) {
+      setEatFrame(0);
+      return;
+    }
+
+    let isAnimating = true;
+    let startTime = Date.now();
+
+    const animate = () => {
+      if (!isAnimating || !isFeeding) return;
+
+      const elapsed = Date.now() - startTime;
+      const expectedFrame =
+        Math.floor((elapsed / 1000) * EAT_FPS) % EAT_FRAME_COUNT;
+
+      setEatFrame(expectedFrame);
+      requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      isAnimating = false;
+    };
+  }, [isFeeding]);
+
   // Slowly decrease each need over time
   useEffect(() => {
     const interval = setInterval(() => {
@@ -280,6 +317,19 @@ export default function App() {
                 contentFit="cover"
                 cachePolicy="memory"
               />
+            ) : isFeeding ? (
+              // Eat spritesheet
+              <ExpoImage
+                source={require("./assets/eat/eat_spritesheet.png")}
+                style={{
+                  width: DISPLAY_SIZE * EAT_COLS,
+                  height: DISPLAY_SIZE * EAT_ROWS,
+                  marginLeft: -((eatFrame % EAT_COLS) * DISPLAY_SIZE),
+                  marginTop: -(Math.floor(eatFrame / EAT_COLS) * DISPLAY_SIZE),
+                }}
+                contentFit="cover"
+                cachePolicy="memory"
+              />
             ) : (
               // Blink spritesheet
               <ExpoImage
@@ -299,6 +349,8 @@ export default function App() {
             <Pressable
               onPressIn={() => {
                 setIsSleeping(false); // Stop sleeping if feeding
+                isFeedingRef.current = true; // Start eat animation
+                setIsFeeding(true); // Trigger re-render for eat animation
                 // Start feeding interval - increase by 1% per second while holding
                 if (!feedIntervalRef.current) {
                   feedIntervalRef.current = setInterval(() => {
@@ -310,6 +362,8 @@ export default function App() {
                 }
               }}
               onPressOut={() => {
+                isFeedingRef.current = false; // Stop eat animation
+                setIsFeeding(false); // Trigger re-render for eat animation
                 // Stop feeding interval when release
                 if (feedIntervalRef.current) {
                   clearInterval(feedIntervalRef.current);

@@ -33,6 +33,12 @@ const EAT_COLS = 4; // 4 columns
 const EAT_ROWS = 1; // 1 row
 const EAT_FPS = 15;
 
+// Upset animation
+const UPSET_FRAME_COUNT = 5;
+const UPSET_COLS = 5; // 5 columns
+const UPSET_ROWS = 1; // 1 row
+const UPSET_FPS = 15;
+
 type NeedKey = "mood" | "hunger" | "clean" | "rest";
 
 const DECAY_PER_TICK = 0.01; // how much to lose each tick (0.01 = 1%)
@@ -41,9 +47,9 @@ const TICK_MS = 10000; // how often to decay, in ms (10000 = 10 seconds)
 export default function App() {
   const [needs, setNeeds] = useState<Record<NeedKey, number>>({
     mood: 0.5,
-    hunger: 0.5,
+    hunger: 0.04,
     clean: 0.5,
-    rest: 0.5,
+    rest: 0.1,
   });
   const [foodSwatchOpen, setFoodSwatchOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState<string | null>(null);
@@ -70,6 +76,9 @@ export default function App() {
   const [eatFrame, setEatFrame] = useState(0);
   const isFeedingRef = useRef(false);
   const [isFeeding, setIsFeeding] = useState(false);
+  const [upsetFrame, setUpsetFrame] = useState(0);
+  const [isUpset, setIsUpset] = useState(false);
+  const hasPlayedUpsetRef = useRef(false);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -274,6 +283,52 @@ export default function App() {
     };
   }, [isFeeding]);
 
+  // Upset animation effect - plays once when meter drops below 10%
+  useEffect(() => {
+    // Check if any meter is below 10%
+    const anyMeterCritical = Object.values(needs).some((value) => value < 0.1);
+
+    if (anyMeterCritical && !hasPlayedUpsetRef.current) {
+      // Trigger upset animation
+      setIsUpset(true);
+      hasPlayedUpsetRef.current = true;
+    } else if (!anyMeterCritical && hasPlayedUpsetRef.current) {
+      // Reset when all meters are back above 10%
+      hasPlayedUpsetRef.current = false;
+      setIsUpset(false);
+      setUpsetFrame(0);
+    }
+  }, [needs]);
+
+  // Play upset animation frames
+  useEffect(() => {
+    if (!isUpset) return;
+
+    let isAnimating = true;
+    let startTime = Date.now();
+
+    const animate = () => {
+      if (!isAnimating) return;
+
+      const elapsed = Date.now() - startTime;
+      const expectedFrame = Math.floor((elapsed / 1000) * UPSET_FPS);
+
+      if (expectedFrame < UPSET_FRAME_COUNT) {
+        setUpsetFrame(expectedFrame);
+        requestAnimationFrame(animate);
+      } else {
+        // Stay on last frame
+        setUpsetFrame(UPSET_FRAME_COUNT - 1);
+      }
+    };
+
+    animate();
+
+    return () => {
+      isAnimating = false;
+    };
+  }, [isUpset]);
+
   // Slowly decrease each need over time
   useEffect(() => {
     const interval = setInterval(() => {
@@ -302,7 +357,22 @@ export default function App() {
               borderRadius: 12,
             }}
           >
-            {isSleeping ? (
+            {isUpset ? (
+              // Upset spritesheet
+              <ExpoImage
+                source={require("./assets/upset/upset_spritesheet.png")}
+                style={{
+                  width: DISPLAY_SIZE * UPSET_COLS,
+                  height: DISPLAY_SIZE * UPSET_ROWS,
+                  marginLeft: -((upsetFrame % UPSET_COLS) * DISPLAY_SIZE),
+                  marginTop: -(
+                    Math.floor(upsetFrame / UPSET_COLS) * DISPLAY_SIZE
+                  ),
+                }}
+                contentFit="cover"
+                cachePolicy="memory"
+              />
+            ) : isSleeping ? (
               // Sleep spritesheet
               <ExpoImage
                 source={require("./assets/sleep/sleep_spritesheet.png")}

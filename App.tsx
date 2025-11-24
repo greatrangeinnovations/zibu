@@ -13,6 +13,15 @@ import {
 import { FontAwesome5 } from "@expo/vector-icons";
 import { Accelerometer } from "expo-sensors";
 import { Image as ExpoImage } from "expo-image";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState } from "react-native";
+
+const STORAGE_KEY = "zibu_needs_v1";
+
+type StoredNeeds = {
+  needs: Record<NeedKey, number>;
+  lastUpdated: number; // Date.now()
+};
 
 // Blink animation
 const FRAME_COUNT = 8;
@@ -42,15 +51,11 @@ const UPSET_FPS = 15;
 type NeedKey = "mood" | "hunger" | "clean" | "rest";
 
 const DECAY_PER_TICK = 0.01; // how much to lose each tick (0.01 = 1%)
-const TICK_MS = 10000; // how often to decay, in ms (10000 = 10 seconds)
+const TICK_MS = 300000; // how often to decay, in ms
 
 export default function App() {
-  const [needs, setNeeds] = useState<Record<NeedKey, number>>({
-    mood: 0.5,
-    hunger: 0.04,
-    clean: 0.5,
-    rest: 0.1,
-  });
+  const [needs, setNeeds] = useState<Record<NeedKey, number> | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [foodSwatchOpen, setFoodSwatchOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState<string | null>(null);
   const [cleanSwatchOpen, setCleanSwatchOpen] = useState(false);
@@ -79,6 +84,7 @@ export default function App() {
   const [upsetFrame, setUpsetFrame] = useState(0);
   const [isUpset, setIsUpset] = useState(false);
   const hasPlayedUpsetRef = useRef(false);
+  const appState = useRef(AppState.currentState);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -87,14 +93,101 @@ export default function App() {
       onPanResponderRelease: (evt, gestureState) => {
         // Detect horizontal swipe (distance > 20px)
         if (Math.abs(gestureState.dx) > 20 && isCleaningRef.current) {
-          setNeeds((prev) => ({
-            ...prev,
-            clean: Math.min(1, prev.clean + 0.01),
-          }));
+          setNeeds((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              clean: Math.min(1, prev.clean + 0.01),
+            };
+          });
         }
       },
     })
   ).current;
+
+  // Initialize: load needs from storage and apply offline decay
+  useEffect(() => {
+    const initializeNeeds = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          // Load stored needs
+          const saved: StoredNeeds = JSON.parse(raw);
+          const now = Date.now();
+          const elapsedMs = now - saved.lastUpdated;
+
+          if (elapsedMs > 0) {
+            // Apply offline decay
+            const decayPerMs = DECAY_PER_TICK / TICK_MS;
+            const decayAmount = elapsedMs * decayPerMs;
+
+            const nextNeeds: Record<NeedKey, number> = { ...saved.needs };
+            (Object.keys(nextNeeds) as NeedKey[]).forEach((key) => {
+              nextNeeds[key] = Math.max(0, nextNeeds[key] - decayAmount);
+            });
+            setNeeds(nextNeeds);
+          } else {
+            setNeeds(saved.needs);
+          }
+        } else {
+          // First time: use defaults
+          setNeeds({
+            mood: 0.5,
+            hunger: 0.04,
+            clean: 0.5,
+            rest: 0.1,
+          });
+        }
+      } catch (e) {
+        console.warn("Failed to initialize needs", e);
+        // Fallback to defaults
+        setNeeds({
+          mood: 0.5,
+          hunger: 0.04,
+          clean: 0.5,
+          rest: 0.1,
+        });
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+
+    initializeNeeds();
+  }, []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState) => {
+      // Came back to foreground
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextState === "active"
+      ) {
+        applyOfflineDecay();
+      }
+
+      appState.current = nextState;
+    });
+
+    return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    if (needs === null) return;
+
+    const saveState = async () => {
+      const data: StoredNeeds = {
+        needs,
+        lastUpdated: Date.now(),
+      };
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      } catch (e) {
+        console.warn("Failed to save needs", e);
+      }
+    };
+
+    saveState();
+  }, [needs]);
 
   // Sleep animation effect
   useEffect(() => {
@@ -223,20 +316,25 @@ export default function App() {
         const now = Date.now();
 
         if (
-          acceleration > 3 &&
+          acceleration > 2 &&
           isPlayingRef.current &&
           now - lastShakeRef.current > 500
         ) {
           lastShakeRef.current = now;
-          setNeeds((prev) => ({
-            ...prev,
-            mood: Math.min(1, prev.mood + 0.01),
-          }));
+          setNeeds((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              mood: Math.min(1, prev.mood + 0.01),
+            };
+          });
         }
       });
     };
 
     setupAccelerometer();
+
+    applyOfflineDecay();
 
     return () => {
       subscription?.remove();
@@ -247,10 +345,13 @@ export default function App() {
   useEffect(() => {
     if (!isSleeping) return;
     const interval = setInterval(() => {
-      setNeeds((prev) => ({
-        ...prev,
-        rest: Math.min(1, prev.rest + 0.01),
-      }));
+      setNeeds((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          rest: Math.min(1, prev.rest + 0.01),
+        };
+      });
     }, 1000);
     return () => clearInterval(interval);
   }, [isSleeping]);
@@ -285,6 +386,7 @@ export default function App() {
 
   // Upset animation effect - plays once when meter drops below 10%
   useEffect(() => {
+    if (!needs) return; // Not initialized yet
     // Check if any meter is below 10%
     const anyMeterCritical = Object.values(needs).some((value) => value < 0.1);
 
@@ -331,8 +433,10 @@ export default function App() {
 
   // Slowly decrease each need over time
   useEffect(() => {
+    if (!isInitialized) return; // Wait for initialization
     const interval = setInterval(() => {
       setNeeds((prev) => {
+        if (!prev) return null;
         const next: Record<NeedKey, number> = { ...prev };
         (Object.keys(next) as NeedKey[]).forEach((key) => {
           next[key] = Math.max(0, next[key] - DECAY_PER_TICK);
@@ -342,7 +446,46 @@ export default function App() {
     }, TICK_MS);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isInitialized]);
+
+  const applyOfflineDecay = async () => {
+    if (needs === null) return; // Not initialized yet
+
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+
+      const saved: StoredNeeds = JSON.parse(raw);
+      const now = Date.now();
+      const elapsedMs = now - saved.lastUpdated;
+
+      if (elapsedMs <= 0) return;
+
+      const decayPerMs = DECAY_PER_TICK / TICK_MS; // same rate as in the interval
+      const decayAmount = elapsedMs * decayPerMs;
+
+      const nextNeeds: Record<NeedKey, number> = { ...saved.needs };
+      (Object.keys(nextNeeds) as NeedKey[]).forEach((key) => {
+        nextNeeds[key] = Math.max(0, nextNeeds[key] - decayAmount);
+      });
+
+      setNeeds(nextNeeds);
+    } catch (e) {
+      console.warn("Failed to load/apply offline decay", e);
+    }
+  };
+
+  if (!isInitialized || needs === null) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <Text>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -424,10 +567,13 @@ export default function App() {
                 // Start feeding interval - increase by 1% per second while holding
                 if (!feedIntervalRef.current) {
                   feedIntervalRef.current = setInterval(() => {
-                    setNeeds((prev) => ({
-                      ...prev,
-                      hunger: Math.min(1, prev.hunger + 0.01),
-                    }));
+                    setNeeds((prev) => {
+                      if (!prev) return null;
+                      return {
+                        ...prev,
+                        hunger: Math.min(1, prev.hunger + 0.01),
+                      };
+                    });
                   }, 1000);
                 }
               }}

@@ -704,29 +704,25 @@ export default function App() {
       {/* Status icons row (meters) above nav */}
       <View style={styles.statusRow}>
         <Pressable
-          onLongPress={() => setToySwatchOpen(true)}
-          delayLongPress={350}
+          onPress={() => setToySwatchOpen(true)}
           style={{ flex: 1, alignItems: "center" }}
         >
           <StatusCircle iconName="smile" label="Happy" value={needs.mood} />
         </Pressable>
         <Pressable
-          onLongPress={() => setFoodSwatchOpen(true)}
-          delayLongPress={350}
+          onPress={() => setFoodSwatchOpen(true)}
           style={{ flex: 1, alignItems: "center" }}
         >
           <StatusCircle iconName="utensils" label="Full" value={needs.hunger} />
         </Pressable>
         <Pressable
-          onLongPress={() => setCleanSwatchOpen(true)}
-          delayLongPress={350}
+          onPress={() => setCleanSwatchOpen(true)}
           style={{ flex: 1, alignItems: "center" }}
         >
           <StatusCircle iconName="bath" label="Clean" value={needs.clean} />
         </Pressable>
         <Pressable
-          onLongPress={() => setSleepSwatchOpen(true)}
-          delayLongPress={350}
+          onPress={() => setSleepSwatchOpen(true)}
           style={{ flex: 1, alignItems: "center" }}
         >
           <StatusCircle iconName="bed" label="Rested" value={needs.rest} />

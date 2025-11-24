@@ -14,11 +14,18 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import { Accelerometer } from "expo-sensors";
 import { Image as ExpoImage } from "expo-image";
 
+// Blink animation
 const FRAME_COUNT = 8;
-const COLS = 3; // 7040px / 640px per frame
-const ROWS = 3; // 4480px / 640px per frame
+const COLS = 3; // 3 columns
+const ROWS = 3; // 3 rows
 const DISPLAY_SIZE = 300; // Display at 300x300
 const FPS = 20; // Frame rate
+
+// Sleep animation
+const SLEEP_FRAME_COUNT = 3;
+const SLEEP_COLS = 3; // 3 columns
+const SLEEP_ROWS = 1; // 1 row
+const SLEEP_FPS = 15;
 
 type NeedKey = "mood" | "hunger" | "clean" | "rest";
 
@@ -53,6 +60,7 @@ export default function App() {
   const [coinModalOpen, setCoinModalOpen] = useState(false);
   const [coins, setCoins] = useState(1250);
   const [frame, setFrame] = useState(0);
+  const [sleepFrame, setSleepFrame] = useState(0);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -69,6 +77,38 @@ export default function App() {
       },
     })
   ).current;
+
+  // Sleep animation effect
+  useEffect(() => {
+    if (!isSleeping) {
+      setSleepFrame(0);
+      return;
+    }
+
+    let isAnimating = true;
+    let startTime = Date.now();
+
+    const animate = () => {
+      if (!isAnimating) return;
+
+      const elapsed = Date.now() - startTime;
+      const expectedFrame = Math.floor((elapsed / 1000) * SLEEP_FPS);
+
+      if (expectedFrame < SLEEP_FRAME_COUNT) {
+        setSleepFrame(expectedFrame);
+        requestAnimationFrame(animate);
+      } else {
+        // Stay on last frame (sleeping)
+        setSleepFrame(SLEEP_FRAME_COUNT - 1);
+      }
+    };
+
+    animate();
+
+    return () => {
+      isAnimating = false;
+    };
+  }, [isSleeping]);
 
   // Animation: alternate between single and double blink
   useEffect(() => {
@@ -225,17 +265,35 @@ export default function App() {
               borderRadius: 12,
             }}
           >
-            <ExpoImage
-              source={require("./assets/happy-blink/blink_spritesheet.png")}
-              style={{
-                width: DISPLAY_SIZE * COLS,
-                height: DISPLAY_SIZE * ROWS,
-                marginLeft: -((frame % COLS) * DISPLAY_SIZE),
-                marginTop: -(Math.floor(frame / COLS) * DISPLAY_SIZE),
-              }}
-              contentFit="cover"
-              cachePolicy="memory"
-            />
+            {isSleeping ? (
+              // Sleep spritesheet
+              <ExpoImage
+                source={require("./assets/sleep/sleep_spritesheet.png")}
+                style={{
+                  width: DISPLAY_SIZE * SLEEP_COLS,
+                  height: DISPLAY_SIZE * SLEEP_ROWS,
+                  marginLeft: -((sleepFrame % SLEEP_COLS) * DISPLAY_SIZE),
+                  marginTop: -(
+                    Math.floor(sleepFrame / SLEEP_COLS) * DISPLAY_SIZE
+                  ),
+                }}
+                contentFit="cover"
+                cachePolicy="memory"
+              />
+            ) : (
+              // Blink spritesheet
+              <ExpoImage
+                source={require("./assets/happy-blink/blink_spritesheet.png")}
+                style={{
+                  width: DISPLAY_SIZE * COLS,
+                  height: DISPLAY_SIZE * ROWS,
+                  marginLeft: -((frame % COLS) * DISPLAY_SIZE),
+                  marginTop: -(Math.floor(frame / COLS) * DISPLAY_SIZE),
+                }}
+                contentFit="cover"
+                cachePolicy="memory"
+              />
+            )}
           </View>
           {selectedFood && (
             <Pressable

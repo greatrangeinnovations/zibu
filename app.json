@@ -15,7 +15,10 @@
     "ios": {
       "bundleIdentifier": "com.greatrangeinnovations.zibu",
       "buildNumber": "1.0.0",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {

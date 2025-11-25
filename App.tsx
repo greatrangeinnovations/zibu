@@ -36,6 +36,7 @@ import {
   UPSET_ROWS,
   UPSET_FPS,
 } from "./constants/animation";
+import { applyDecay, getDecayPerMs } from "./utils/needs";
 
 const STORAGE_KEY = "zibu_needs_v1";
 
@@ -44,7 +45,7 @@ type StoredNeeds = {
   lastUpdated: number;
 };
 
-type NeedKey = "mood" | "hunger" | "clean" | "rest";
+import type { NeedKey } from "./types";
 
 const DECAY_PER_TICK = 0.01; // how much to lose each tick (0.01 = 1%)
 const TICK_MS = 300000; // how often to decay, in ms
@@ -114,14 +115,8 @@ export default function App() {
 
           if (elapsedMs > 0) {
             // Apply offline decay
-            const decayPerMs = DECAY_PER_TICK / TICK_MS;
-            const decayAmount = elapsedMs * decayPerMs;
-
-            const nextNeeds: Record<NeedKey, number> = { ...saved.needs };
-            (Object.keys(nextNeeds) as NeedKey[]).forEach((key) => {
-              nextNeeds[key] = Math.max(0, nextNeeds[key] - decayAmount);
-            });
-            setNeeds(nextNeeds);
+            const decayPerMs = getDecayPerMs(DECAY_PER_TICK, TICK_MS);
+            setNeeds(applyDecay(saved.needs, decayPerMs, elapsedMs));
           } else {
             setNeeds(saved.needs);
           }
@@ -457,15 +452,8 @@ export default function App() {
 
       if (elapsedMs <= 0) return;
 
-      const decayPerMs = DECAY_PER_TICK / TICK_MS; // same rate as in the interval
-      const decayAmount = elapsedMs * decayPerMs;
-
-      const nextNeeds: Record<NeedKey, number> = { ...saved.needs };
-      (Object.keys(nextNeeds) as NeedKey[]).forEach((key) => {
-        nextNeeds[key] = Math.max(0, nextNeeds[key] - decayAmount);
-      });
-
-      setNeeds(nextNeeds);
+      const decayPerMs = getDecayPerMs(DECAY_PER_TICK, TICK_MS);
+      setNeeds(applyDecay(saved.needs, decayPerMs, elapsedMs));
     } catch (e) {
       console.warn("Failed to load/apply offline decay", e);
     }

@@ -255,6 +255,16 @@ const styles = StyleSheet.create({
     borderRightColor: "transparent",
     borderTopColor: "rgba(0, 0, 0, 0.8)",
   },
+  selectedActionButton: {
+    borderRadius: 70,
+    borderWidth: 3,
+    borderColor: "#FFD700",
+    shadowColor: "#FFD700",
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 8,
+  },
 });
 
 export default styles;

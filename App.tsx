@@ -39,6 +39,8 @@ import {
 } from "./constants/animation";
 import { applyDecay, getDecayPerMs } from "./utils/needs";
 
+type ActiveMode = "feed" | "clean" | "play" | "sleep" | null;
+
 const STORAGE_KEY = "zibu_needs_v1";
 
 type StoredNeeds = {
@@ -55,6 +57,9 @@ export default function App() {
   // Needs state
   const [needs, setNeeds] = useState<Record<NeedKey, number> | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Track which action is currently active
+  const [activeMode, setActiveMode] = useState<ActiveMode>(null);
 
   // Swatch modals and selections
   const [foodSwatchOpen, setFoodSwatchOpen] = useState(false);
@@ -627,7 +632,11 @@ export default function App() {
           items={[{ key: "blanket", label: "Old Blanket", icon: "dot-circle" }]}
           selectedKey={selectedSleepItem}
           onSelect={(key) => {
+            setActiveMode("sleep");
             setSelectedSleepItem(key);
+            setSelectedFood(null);
+            setSelectedCleanTool(null);
+            setSelectedToy(null);
             setSleepSwatchOpen(false);
             setIsSleeping(true);
           }}
@@ -642,7 +651,12 @@ export default function App() {
           items={[{ key: "bottle", label: "Bottle", icon: "wine-bottle" }]}
           selectedKey={selectedFood}
           onSelect={(key) => {
+            setActiveMode("feed");
             setSelectedFood(key);
+            setSelectedCleanTool(null);
+            setSelectedToy(null);
+            setIsSleeping(false);
+            setSelectedSleepItem(null);
             setFoodSwatchOpen(false);
           }}
           onClose={() => setFoodSwatchOpen(false)}
@@ -656,8 +670,12 @@ export default function App() {
           items={[{ key: "sponge", label: "Old Sponge", icon: "dot-circle" }]}
           selectedKey={selectedCleanTool}
           onSelect={(key) => {
+            setActiveMode("clean");
             setSelectedCleanTool(key);
-            setIsSleeping(false); // Stop sleeping if cleaning
+            setSelectedFood(null);
+            setSelectedToy(null);
+            setIsSleeping(false);
+            setSelectedSleepItem(null);
             setCleanSwatchOpen(false);
           }}
           onClose={() => setCleanSwatchOpen(false)}
@@ -671,8 +689,12 @@ export default function App() {
           items={[{ key: "ball", label: "Deflated Ball", icon: "circle" }]}
           selectedKey={selectedToy}
           onSelect={(key) => {
+            setActiveMode("play");
             setSelectedToy(key);
-            setIsSleeping(false); // Stop sleeping if playing
+            setSelectedFood(null);
+            setSelectedCleanTool(null);
+            setIsSleeping(false);
+            setSelectedSleepItem(null);
             setToySwatchOpen(false);
           }}
           onClose={() => setToySwatchOpen(false)}
@@ -710,26 +732,70 @@ export default function App() {
       {/* Status icons row (meters) above nav */}
       <View style={styles.statusRow}>
         <Pressable
-          onPress={() => setToySwatchOpen(true)}
-          style={{ flex: 1, alignItems: "center" }}
+          onPress={() => {
+            setActiveMode(null);
+            setSelectedFood(null);
+            setSelectedCleanTool(null);
+            setSelectedToy(null);
+            setIsSleeping(false);
+            setSelectedSleepItem(null);
+            setToySwatchOpen(true);
+          }}
+          style={[
+            { flex: 1, alignItems: "center" },
+            activeMode === "play" && styles.selectedActionButton,
+          ]}
         >
           <StatusCircle iconName="smile" label="Happy" value={needs.mood} />
         </Pressable>
         <Pressable
-          onPress={() => setFoodSwatchOpen(true)}
-          style={{ flex: 1, alignItems: "center" }}
+          onPress={() => {
+            setActiveMode(null);
+            setSelectedFood(null);
+            setSelectedCleanTool(null);
+            setSelectedToy(null);
+            setIsSleeping(false);
+            setSelectedSleepItem(null);
+            setFoodSwatchOpen(true);
+          }}
+          style={[
+            { flex: 1, alignItems: "center" },
+            activeMode === "feed" && styles.selectedActionButton,
+          ]}
         >
           <StatusCircle iconName="utensils" label="Full" value={needs.hunger} />
         </Pressable>
         <Pressable
-          onPress={() => setCleanSwatchOpen(true)}
-          style={{ flex: 1, alignItems: "center" }}
+          onPress={() => {
+            setActiveMode(null);
+            setSelectedFood(null);
+            setSelectedCleanTool(null);
+            setSelectedToy(null);
+            setIsSleeping(false);
+            setSelectedSleepItem(null);
+            setCleanSwatchOpen(true);
+          }}
+          style={[
+            { flex: 1, alignItems: "center" },
+            activeMode === "clean" && styles.selectedActionButton,
+          ]}
         >
           <StatusCircle iconName="bath" label="Clean" value={needs.clean} />
         </Pressable>
         <Pressable
-          onPress={() => setSleepSwatchOpen(true)}
-          style={{ flex: 1, alignItems: "center" }}
+          onPress={() => {
+            setActiveMode(null);
+            setSelectedFood(null);
+            setSelectedCleanTool(null);
+            setSelectedToy(null);
+            setIsSleeping(false);
+            setSelectedSleepItem(null);
+            setSleepSwatchOpen(true);
+          }}
+          style={[
+            { flex: 1, alignItems: "center" },
+            activeMode === "sleep" && styles.selectedActionButton,
+          ]}
         >
           <StatusCircle iconName="bed" label="Rested" value={needs.rest} />
         </Pressable>

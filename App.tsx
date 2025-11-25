@@ -53,7 +53,7 @@ import type { NeedKey } from "./types";
 const DECAY_PER_TICK = 0.01; // how much to lose each tick (0.01 = 1%)
 const TICK_MS = 300000; // how often to decay, in ms
 
-export default function App() {
+export default function HomeScreen() {
   // Needs state
   const [needs, setNeeds] = useState<Record<NeedKey, number> | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -77,6 +77,18 @@ export default function App() {
   const [selectedSleepItem, setSelectedSleepItem] = useState<string | null>(
     null
   );
+
+  // Diagnostic: check all modal visibilities
+  if (
+    typeof foodSwatchOpen !== "boolean" ||
+    typeof cleanSwatchOpen !== "boolean" ||
+    typeof toySwatchOpen !== "boolean" ||
+    typeof sleepSwatchOpen !== "boolean"
+  ) {
+    throw new Error(
+      `Modal state type error: foodSwatchOpen=${typeof foodSwatchOpen}, cleanSwatchOpen=${typeof cleanSwatchOpen}, toySwatchOpen=${typeof toySwatchOpen}, sleepSwatchOpen=${typeof sleepSwatchOpen}`
+    );
+  }
 
   // Activity states
   const [isSleeping, setIsSleeping] = useState(false);
@@ -701,7 +713,6 @@ export default function App() {
           instructions="Shake to play"
           selectedActive={!!selectedToy}
         />
-
       </View>
 
       {/* Status icons row (meters) above nav */}
@@ -773,30 +784,6 @@ export default function App() {
           ]}
         >
           <StatusCircle iconName="bed" label="Rested" value={needs.rest} />
-        </Pressable>
-      </View>
-
-      {/* Bottom navigation menu */}
-      <View style={styles.bottomNav}>
-        <Pressable style={styles.navItem}>
-          <FontAwesome5 name="home" size={24} color="#6DD19C" />
-          <Text
-            style={[styles.navLabel, { color: "#6DD19C", fontWeight: "700" }]}
-          >
-            Home
-          </Text>
-        </Pressable>
-        <Pressable style={[styles.navItem, styles.navItemDisabled]} disabled>
-          <FontAwesome5 name="shopping-bag" size={24} color="#bbb" />
-          <Text style={styles.navLabel}>Shop</Text>
-        </Pressable>
-        <Pressable style={[styles.navItem, styles.navItemDisabled]} disabled>
-          <FontAwesome5 name="history" size={24} color="#bbb" />
-          <Text style={styles.navLabel}>History</Text>
-        </Pressable>
-        <Pressable style={[styles.navItem, styles.navItemDisabled]} disabled>
-          <FontAwesome5 name="user" size={24} color="#bbb" />
-          <Text style={styles.navLabel}>Profile</Text>
         </Pressable>
       </View>
     </SafeAreaView>

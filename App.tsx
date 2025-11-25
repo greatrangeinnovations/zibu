@@ -702,31 +702,6 @@ export default function App() {
           selectedActive={!!selectedToy}
         />
 
-        {/* Add hints for interactions based on need levels */}
-        {needs.hunger < 0.7 && (
-          <View style={[styles.tooltip, { left: "43%" }]}>
-            <Text style={styles.tooltipText}>Tap and hold to feed</Text>
-            <View style={styles.tooltipArrow} />
-          </View>
-        )}
-        {needs.mood < 0.7 && (
-          <View style={[styles.tooltip, { left: "19%" }]}>
-            <Text style={styles.tooltipText}>Shake to play</Text>
-            <View style={styles.tooltipArrow} />
-          </View>
-        )}
-        {needs.clean < 0.7 && (
-          <View style={[styles.tooltip, { left: "75%" }]}>
-            <Text style={styles.tooltipText}>Swipe to wash</Text>
-            <View style={styles.tooltipArrow} />
-          </View>
-        )}
-        {needs.rest < 0.7 && (
-          <View style={[styles.tooltip, { left: "105%" }]}>
-            <Text style={styles.tooltipText}>Put to sleep</Text>
-            <View style={styles.tooltipArrow} />
-          </View>
-        )}
       </View>
 
       {/* Status icons row (meters) above nav */}

@@ -8,7 +8,7 @@ import {
   Modal,
   PanResponder,
 } from "react-native";
-import { AppState } from "react-native";
+import { AppState, AppStateStatus } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { Accelerometer } from "expo-sensors";
@@ -49,7 +49,7 @@ type StoredNeeds = {
 import type { NeedKey } from "./types";
 
 const DECAY_PER_TICK = 0.01; // how much to lose each tick (0.01 = 1%)
-const TICK_MS = 300000; // how often to decay, in ms
+const TICK_MS = 1000; // how often to decay, in ms
 
 export default function App() {
   // Needs state
@@ -97,7 +97,7 @@ export default function App() {
   const lastShakeRef = useRef<number>(0);
   const feedIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasPlayedUpsetRef = useRef(false);
-  const appState = useRef(AppState.currentState);
+  const appState = useRef<AppStateStatus>(AppState.currentState);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -163,20 +163,39 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const sub = AppState.addEventListener("change", (nextState) => {
-      // Came back to foreground
+    const handleAppStateChange = async (nextState: AppStateStatus) => {
+      const prevState = appState.current;
+      appState.current = nextState;
+
+      // Going to background/inactive: save needs and timestamp
       if (
-        appState.current.match(/inactive|background/) &&
+        prevState === "active" &&
+        (nextState === "inactive" || nextState === "background")
+      ) {
+        if (needs !== null) {
+          const data: StoredNeeds = {
+            needs,
+            lastUpdated: Date.now(),
+          };
+          try {
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          } catch (e) {
+            console.warn("Failed to save needs on background", e);
+          }
+        }
+      }
+      // Came back to foreground: apply offline decay
+      if (
+        (prevState === "inactive" || prevState === "background") &&
         nextState === "active"
       ) {
         applyOfflineDecay();
       }
+    };
 
-      appState.current = nextState;
-    });
-
+    const sub = AppState.addEventListener("change", handleAppStateChange);
     return () => sub.remove();
-  }, []);
+  }, [needs]);
 
   useEffect(() => {
     if (needs === null) return;
@@ -456,8 +475,6 @@ export default function App() {
   }, [isInitialized]);
 
   const applyOfflineDecay = async () => {
-    if (needs === null) return; // Not initialized yet
-
     try {
       const raw = await AsyncStorage.getItem(STORAGE_KEY);
       if (!raw) return;
@@ -469,7 +486,15 @@ export default function App() {
       if (elapsedMs <= 0) return;
 
       const decayPerMs = getDecayPerMs(DECAY_PER_TICK, TICK_MS);
-      setNeeds(applyDecay(saved.needs, decayPerMs, elapsedMs));
+      const decayedNeeds = applyDecay(saved.needs, decayPerMs, elapsedMs);
+
+      // Update both state and storage with decayed needs
+      setNeeds(decayedNeeds);
+      const updatedData: StoredNeeds = {
+        needs: decayedNeeds,
+        lastUpdated: now,
+      };
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedData));
     } catch (e) {
       console.warn("Failed to load/apply offline decay", e);
     }

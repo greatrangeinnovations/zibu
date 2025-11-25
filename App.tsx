@@ -18,6 +18,25 @@ import styles from "./App.styles";
 import StatusCircle from "./components/StatusCircle";
 import ZibuSprite from "./components/ZibuSprite";
 import SwatchModal from "./components/SwatchModal";
+import {
+  FRAME_COUNT,
+  COLS,
+  ROWS,
+  DISPLAY_SIZE,
+  FPS,
+  SLEEP_FRAME_COUNT,
+  SLEEP_COLS,
+  SLEEP_ROWS,
+  SLEEP_FPS,
+  EAT_FRAME_COUNT,
+  EAT_COLS,
+  EAT_ROWS,
+  EAT_FPS,
+  UPSET_FRAME_COUNT,
+  UPSET_COLS,
+  UPSET_ROWS,
+  UPSET_FPS,
+} from "./constants/animation";
 
 const STORAGE_KEY = "zibu_needs_v1";
 
@@ -25,31 +44,6 @@ type StoredNeeds = {
   needs: Record<NeedKey, number>;
   lastUpdated: number;
 };
-
-// Blink animation
-const FRAME_COUNT = 8;
-const COLS = 3; // 3 columns
-const ROWS = 3; // 3 rows
-const DISPLAY_SIZE = 300; // Display at 300x300
-const FPS = 20; // Frame rate
-
-// Sleep animation
-const SLEEP_FRAME_COUNT = 3;
-const SLEEP_COLS = 3; // 3 columns
-const SLEEP_ROWS = 1; // 1 row
-const SLEEP_FPS = 15;
-
-// Eat animation
-const EAT_FRAME_COUNT = 4;
-const EAT_COLS = 4; // 4 columns
-const EAT_ROWS = 1; // 1 row
-const EAT_FPS = 15;
-
-// Upset animation
-const UPSET_FRAME_COUNT = 5;
-const UPSET_COLS = 5; // 5 columns
-const UPSET_ROWS = 1; // 1 row
-const UPSET_FPS = 15;
 
 type NeedKey = "mood" | "hunger" | "clean" | "rest";
 

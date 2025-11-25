@@ -256,14 +256,11 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(0, 0, 0, 0.8)",
   },
   selectedActionButton: {
-    borderRadius: 70,
-    borderWidth: 3,
-    borderColor: "#FFD700",
-    shadowColor: "#FFD700",
+    shadowColor: "#555",
     shadowOpacity: 0.8,
-    shadowRadius: 10,
+    shadowRadius: 20,
     shadowOffset: { width: 0, height: 0 },
-    elevation: 8,
+    elevation: 2,
   },
 });
 

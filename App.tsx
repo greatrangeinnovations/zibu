@@ -49,7 +49,7 @@ type StoredNeeds = {
 import type { NeedKey } from "./types";
 
 const DECAY_PER_TICK = 0.01; // how much to lose each tick (0.01 = 1%)
-const TICK_MS = 1000; // how often to decay, in ms
+const TICK_MS = 300000; // how often to decay, in ms
 
 export default function App() {
   // Needs state

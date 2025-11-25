@@ -16,6 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState } from "react-native";
 import styles from "./App.styles";
 import StatusCircle from "./components/StatusCircle";
+import SwatchModal from "./components/SwatchModal";
 
 const STORAGE_KEY = "zibu_needs_v1";
 
@@ -636,190 +637,64 @@ export default function App() {
         <Text style={styles.title}>Zibu</Text>
         <Text style={styles.subtitle}>Your little space buddy</Text>
 
-        {/* Sleep swatch modal */}
-        <Modal
+        <SwatchModal
           visible={sleepSwatchOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setSleepSwatchOpen(false)}
-        >
-          <Pressable
-            style={styles.swatchOverlay}
-            onPress={() => setSleepSwatchOpen(false)}
-          >
-            <Pressable style={styles.swatchContainer} onPress={() => {}}>
-              <Text style={styles.swatchTitle}>Select Blanket</Text>
-              <Pressable
-                style={[
-                  styles.swatchItem,
-                  selectedSleepItem === "blanket" && styles.swatchItemSelected,
-                ]}
-                onPress={() => {
-                  setSelectedSleepItem("blanket");
-                  setSleepSwatchOpen(false);
-                  setIsSleeping(true);
-                }}
-              >
-                <FontAwesome5
-                  name="dot-circle"
-                  size={32}
-                  color={selectedSleepItem === "blanket" ? "#fff" : "#6DD19C"}
-                />
-                <Text
-                  style={[
-                    styles.swatchItemLabel,
-                    selectedSleepItem === "blanket" && { color: "#fff" },
-                  ]}
-                >
-                  Old Blanket
-                </Text>
-              </Pressable>
-              {selectedSleepItem && isSleeping && (
-                <Text style={styles.feedInstructions}>
-                  Zibu is sleeping... (+1%/sec)
-                </Text>
-              )}
-            </Pressable>
-          </Pressable>
-        </Modal>
+          title="Select Blanket"
+          items={[{ key: "blanket", label: "Old Blanket", icon: "dot-circle" }]}
+          selectedKey={selectedSleepItem}
+          onSelect={(key) => {
+            setSelectedSleepItem(key);
+            setSleepSwatchOpen(false);
+            setIsSleeping(true);
+          }}
+          onClose={() => setSleepSwatchOpen(false)}
+          instructions="Zibu is sleeping... (+1%/sec)"
+          selectedActive={isSleeping}
+        />
 
-        {/* Food swatch modal */}
-        <Modal
+        <SwatchModal
           visible={foodSwatchOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setFoodSwatchOpen(false)}
-        >
-          <Pressable
-            style={styles.swatchOverlay}
-            onPress={() => setFoodSwatchOpen(false)}
-          >
-            <Pressable style={styles.swatchContainer} onPress={() => {}}>
-              <Text style={styles.swatchTitle}>Select Food</Text>
-              <Pressable
-                style={[
-                  styles.swatchItem,
-                  selectedFood === "bottle" && styles.swatchItemSelected,
-                ]}
-                onPress={() => {
-                  setSelectedFood("bottle");
-                  setFoodSwatchOpen(false);
-                }}
-              >
-                <FontAwesome5
-                  name="wine-bottle"
-                  size={32}
-                  color={selectedFood === "bottle" ? "#fff" : "#6DD19C"}
-                />
-                <Text
-                  style={[
-                    styles.swatchItemLabel,
-                    selectedFood === "bottle" && { color: "#fff" },
-                  ]}
-                >
-                  Bottle
-                </Text>
-              </Pressable>
-              {selectedFood && (
-                <Text style={styles.feedInstructions}>
-                  Long hold Zibu to feed
-                </Text>
-              )}
-            </Pressable>
-          </Pressable>
-        </Modal>
+          title="Select Food"
+          items={[{ key: "bottle", label: "Bottle", icon: "wine-bottle" }]}
+          selectedKey={selectedFood}
+          onSelect={(key) => {
+            setSelectedFood(key);
+            setFoodSwatchOpen(false);
+          }}
+          onClose={() => setFoodSwatchOpen(false)}
+          instructions="Long hold Zibu to feed"
+          selectedActive={!!selectedFood}
+        />
 
-        {/* Clean swatch modal */}
-        <Modal
+        <SwatchModal
           visible={cleanSwatchOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setCleanSwatchOpen(false)}
-        >
-          <Pressable
-            style={styles.swatchOverlay}
-            onPress={() => setCleanSwatchOpen(false)}
-          >
-            <Pressable style={styles.swatchContainer} onPress={() => {}}>
-              <Text style={styles.swatchTitle}>Select Cleaner</Text>
-              <Pressable
-                style={[
-                  styles.swatchItem,
-                  selectedCleanTool === "sponge" && styles.swatchItemSelected,
-                ]}
-                onPress={() => {
-                  setSelectedCleanTool("sponge");
-                  setIsSleeping(false); // Stop sleeping if cleaning
-                  setCleanSwatchOpen(false);
-                }}
-              >
-                <FontAwesome5
-                  name="dot-circle"
-                  size={32}
-                  color={selectedCleanTool === "sponge" ? "#fff" : "#6DD19C"}
-                />
-                <Text
-                  style={[
-                    styles.swatchItemLabel,
-                    selectedCleanTool === "sponge" && {
-                      color: "#fff",
-                    },
-                  ]}
-                >
-                  Old Sponge
-                </Text>
-              </Pressable>
-              {selectedCleanTool && (
-                <Text style={styles.feedInstructions}>Swipe to wash</Text>
-              )}
-            </Pressable>
-          </Pressable>
-        </Modal>
+          title="Select Cleaner"
+          items={[{ key: "sponge", label: "Old Sponge", icon: "dot-circle" }]}
+          selectedKey={selectedCleanTool}
+          onSelect={(key) => {
+            setSelectedCleanTool(key);
+            setIsSleeping(false); // Stop sleeping if cleaning
+            setCleanSwatchOpen(false);
+          }}
+          onClose={() => setCleanSwatchOpen(false)}
+          instructions="Swipe to wash"
+          selectedActive={!!selectedCleanTool}
+        />
 
-        {/* Toy swatch modal */}
-        <Modal
+        <SwatchModal
           visible={toySwatchOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setToySwatchOpen(false)}
-        >
-          <Pressable
-            style={styles.swatchOverlay}
-            onPress={() => setToySwatchOpen(false)}
-          >
-            <Pressable style={styles.swatchContainer} onPress={() => {}}>
-              <Text style={styles.swatchTitle}>Select Toy</Text>
-              <Pressable
-                style={[
-                  styles.swatchItem,
-                  selectedToy === "ball" && styles.swatchItemSelected,
-                ]}
-                onPress={() => {
-                  setSelectedToy("ball");
-                  setIsSleeping(false); // Stop sleeping if playing
-                  setToySwatchOpen(false);
-                }}
-              >
-                <FontAwesome5
-                  name="circle"
-                  size={32}
-                  color={selectedToy === "ball" ? "#fff" : "#6DD19C"}
-                />
-                <Text
-                  style={[
-                    styles.swatchItemLabel,
-                    selectedToy === "ball" && { color: "#fff" },
-                  ]}
-                >
-                  Deflated Ball
-                </Text>
-              </Pressable>
-              {selectedToy && (
-                <Text style={styles.feedInstructions}>Shake to play</Text>
-              )}
-            </Pressable>
-          </Pressable>
-        </Modal>
+          title="Select Toy"
+          items={[{ key: "ball", label: "Deflated Ball", icon: "circle" }]}
+          selectedKey={selectedToy}
+          onSelect={(key) => {
+            setSelectedToy(key);
+            setIsSleeping(false); // Stop sleeping if playing
+            setToySwatchOpen(false);
+          }}
+          onClose={() => setToySwatchOpen(false)}
+          instructions="Shake to play"
+          selectedActive={!!selectedToy}
+        />
 
         {/* Add hints for interactions based on need levels */}
         {needs.hunger < 0.7 && (

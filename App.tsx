@@ -8,15 +8,16 @@ import {
   Modal,
   PanResponder,
 } from "react-native";
+import { AppState } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { Accelerometer } from "expo-sensors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AppState } from "react-native";
+
 import styles from "./App.styles";
 import StatusCircle from "./components/StatusCircle";
-import ZibuSprite from "./components/ZibuSprite";
 import SwatchModal from "./components/SwatchModal";
+import ZibuSprite from "./components/ZibuSprite";
 import {
   FRAME_COUNT,
   COLS,
@@ -51,35 +52,50 @@ const DECAY_PER_TICK = 0.01; // how much to lose each tick (0.01 = 1%)
 const TICK_MS = 300000; // how often to decay, in ms
 
 export default function App() {
+  // Needs state
   const [needs, setNeeds] = useState<Record<NeedKey, number> | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Swatch modals and selections
   const [foodSwatchOpen, setFoodSwatchOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState<string | null>(null);
+
   const [cleanSwatchOpen, setCleanSwatchOpen] = useState(false);
   const [selectedCleanTool, setSelectedCleanTool] = useState<string | null>(
     null
   );
+
   const [toySwatchOpen, setToySwatchOpen] = useState(false);
   const [selectedToy, setSelectedToy] = useState<string | null>(null);
+
   const [sleepSwatchOpen, setSleepSwatchOpen] = useState(false);
   const [selectedSleepItem, setSelectedSleepItem] = useState<string | null>(
     null
   );
+
+  // Activity states
   const [isSleeping, setIsSleeping] = useState(false);
-  const isCleaningRef = useRef(false);
-  const isPlayingRef = useRef(false);
-  const lastShakeRef = useRef<number>(0);
-  const shakeThresholdRef = useRef(35);
-  const feedIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [coinModalOpen, setCoinModalOpen] = useState(false);
-  const [coins, setCoins] = useState(1250);
+  const [isFeeding, setIsFeeding] = useState(false);
+
+  // Animation frames
   const [frame, setFrame] = useState(0);
   const [sleepFrame, setSleepFrame] = useState(0);
   const [eatFrame, setEatFrame] = useState(0);
-  const isFeedingRef = useRef(false);
-  const [isFeeding, setIsFeeding] = useState(false);
   const [upsetFrame, setUpsetFrame] = useState(0);
+
+  // Upset state
   const [isUpset, setIsUpset] = useState(false);
+
+  // Coin modal and coins
+  const [coinModalOpen, setCoinModalOpen] = useState(false);
+  const [coins, setCoins] = useState(1250);
+
+  // Refs for effects and gesture state
+  const isCleaningRef = useRef(false);
+  const isPlayingRef = useRef(false);
+  const isFeedingRef = useRef(false);
+  const lastShakeRef = useRef<number>(0);
+  const feedIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasPlayedUpsetRef = useRef(false);
   const appState = useRef(AppState.currentState);
 

@@ -16,6 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState } from "react-native";
 import styles from "./App.styles";
 import StatusCircle from "./components/StatusCircle";
+import ZibuSprite from "./components/ZibuSprite";
 import SwatchModal from "./components/SwatchModal";
 
 const STORAGE_KEY = "zibu_needs_v1";
@@ -502,63 +503,24 @@ export default function App() {
               borderRadius: 12,
             }}
           >
-            {isUpset ? (
-              // Upset spritesheet
-              <ExpoImage
-                source={require("./assets/upset/upset_spritesheet.png")}
-                style={{
-                  width: DISPLAY_SIZE * UPSET_COLS,
-                  height: DISPLAY_SIZE * UPSET_ROWS,
-                  marginLeft: -((upsetFrame % UPSET_COLS) * DISPLAY_SIZE),
-                  marginTop: -(
-                    Math.floor(upsetFrame / UPSET_COLS) * DISPLAY_SIZE
-                  ),
-                }}
-                contentFit="cover"
-                cachePolicy="memory"
-              />
-            ) : isSleeping ? (
-              // Sleep spritesheet
-              <ExpoImage
-                source={require("./assets/sleep/sleep_spritesheet.png")}
-                style={{
-                  width: DISPLAY_SIZE * SLEEP_COLS,
-                  height: DISPLAY_SIZE * SLEEP_ROWS,
-                  marginLeft: -((sleepFrame % SLEEP_COLS) * DISPLAY_SIZE),
-                  marginTop: -(
-                    Math.floor(sleepFrame / SLEEP_COLS) * DISPLAY_SIZE
-                  ),
-                }}
-                contentFit="cover"
-                cachePolicy="memory"
-              />
-            ) : isFeeding ? (
-              // Eat spritesheet
-              <ExpoImage
-                source={require("./assets/eat/eat_spritesheet.png")}
-                style={{
-                  width: DISPLAY_SIZE * EAT_COLS,
-                  height: DISPLAY_SIZE * EAT_ROWS,
-                  marginLeft: -((eatFrame % EAT_COLS) * DISPLAY_SIZE),
-                  marginTop: -(Math.floor(eatFrame / EAT_COLS) * DISPLAY_SIZE),
-                }}
-                contentFit="cover"
-                cachePolicy="memory"
-              />
-            ) : (
-              // Blink spritesheet
-              <ExpoImage
-                source={require("./assets/happy-blink/blink_spritesheet.png")}
-                style={{
-                  width: DISPLAY_SIZE * COLS,
-                  height: DISPLAY_SIZE * ROWS,
-                  marginLeft: -((frame % COLS) * DISPLAY_SIZE),
-                  marginTop: -(Math.floor(frame / COLS) * DISPLAY_SIZE),
-                }}
-                contentFit="cover"
-                cachePolicy="memory"
-              />
-            )}
+            <ZibuSprite
+              isUpset={isUpset}
+              isSleeping={isSleeping}
+              isFeeding={isFeeding}
+              frame={frame}
+              sleepFrame={sleepFrame}
+              eatFrame={eatFrame}
+              upsetFrame={upsetFrame}
+              DISPLAY_SIZE={DISPLAY_SIZE}
+              COLS={COLS}
+              ROWS={ROWS}
+              SLEEP_COLS={SLEEP_COLS}
+              SLEEP_ROWS={SLEEP_ROWS}
+              EAT_COLS={EAT_COLS}
+              EAT_ROWS={EAT_ROWS}
+              UPSET_COLS={UPSET_COLS}
+              UPSET_ROWS={UPSET_ROWS}
+            />
           </View>
           {selectedFood && (
             <Pressable

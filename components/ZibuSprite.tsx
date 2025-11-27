@@ -77,7 +77,7 @@ export default function ZibuSprite({
   } else if (isFeeding) {
     return (
       <ExpoImage
-        source={require("../assets/eat/eat_spritesheet.png")}
+        source={require("../assets/eat/eat_spritesheet2.png")}
         style={{
           width: DISPLAY_SIZE * EAT_COLS,
           height: DISPLAY_SIZE * EAT_ROWS,
@@ -95,7 +95,7 @@ export default function ZibuSprite({
         style={{
           width: DISPLAY_SIZE * PLAYING_COLS,
           height: DISPLAY_SIZE * PLAYING_ROWS,
-          // marginLeft: -((playFrame % PLAYING_COLS) * DISPLAY_SIZE),
+          marginLeft: -((playFrame % PLAYING_COLS) * DISPLAY_SIZE),
           marginTop: -(Math.floor(playFrame / PLAYING_COLS) * DISPLAY_SIZE),
         }}
         contentFit="cover"

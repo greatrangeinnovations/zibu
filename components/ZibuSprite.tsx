@@ -95,7 +95,7 @@ export default function ZibuSprite({
         style={{
           width: DISPLAY_SIZE * PLAYING_COLS,
           height: DISPLAY_SIZE * PLAYING_ROWS,
-          marginLeft: -((playFrame % PLAYING_COLS) * DISPLAY_SIZE),
+          // marginLeft: -((playFrame % PLAYING_COLS) * DISPLAY_SIZE),
           marginTop: -(Math.floor(playFrame / PLAYING_COLS) * DISPLAY_SIZE),
         }}
         contentFit="cover"

@@ -5,13 +5,17 @@ export type ZibuSpriteProps = {
   isUpset: boolean;
   isSleeping: boolean;
   isFeeding: boolean;
+  isPlaying: boolean;
   frame: number;
   sleepFrame: number;
   eatFrame: number;
+  playFrame: number;
   upsetFrame: number;
   DISPLAY_SIZE: number;
   COLS: number;
   ROWS: number;
+  PLAYING_COLS: number;
+  PLAYING_ROWS: number;
   SLEEP_COLS: number;
   SLEEP_ROWS: number;
   EAT_COLS: number;
@@ -24,13 +28,17 @@ export default function ZibuSprite({
   isUpset,
   isSleeping,
   isFeeding,
+  isPlaying,
   frame,
   sleepFrame,
   eatFrame,
+  playFrame,
   upsetFrame,
   DISPLAY_SIZE,
   COLS,
   ROWS,
+  PLAYING_COLS,
+  PLAYING_ROWS,
   SLEEP_COLS,
   SLEEP_ROWS,
   EAT_COLS,
@@ -75,6 +83,20 @@ export default function ZibuSprite({
           height: DISPLAY_SIZE * EAT_ROWS,
           marginLeft: -((eatFrame % EAT_COLS) * DISPLAY_SIZE),
           marginTop: -(Math.floor(eatFrame / EAT_COLS) * DISPLAY_SIZE),
+        }}
+        contentFit="cover"
+        cachePolicy="memory"
+      />
+    );
+  } else if (isPlaying) {
+    return (
+      <ExpoImage
+        source={require("../assets/playing/playing_spritesheet.png")}
+        style={{
+          width: DISPLAY_SIZE * PLAYING_COLS,
+          height: DISPLAY_SIZE * PLAYING_ROWS,
+          marginLeft: -((playFrame % PLAYING_COLS) * DISPLAY_SIZE),
+          marginTop: -(Math.floor(playFrame / PLAYING_COLS) * DISPLAY_SIZE),
         }}
         contentFit="cover"
         cachePolicy="memory"

@@ -24,6 +24,10 @@ import {
   ROWS,
   DISPLAY_SIZE,
   FPS,
+  PLAYING_COLS,
+  PLAYING_ROWS,
+  PLAYING_FRAME_COUNT,
+  PLAYING_FPS,
   SLEEP_FRAME_COUNT,
   SLEEP_COLS,
   SLEEP_ROWS,
@@ -91,12 +95,15 @@ export default function HomeScreen() {
   }
 
   // Activity states
+  const [isPlaying, setIsPlaying] = useState(false); // Controls animation
+  const [isShaking, setIsShaking] = useState(false); // True while shaking
   const [isSleeping, setIsSleeping] = useState(false);
   const [isFeeding, setIsFeeding] = useState(false);
 
   // Animation frames
   const [frame, setFrame] = useState(0);
   const [sleepFrame, setSleepFrame] = useState(0);
+  const [playFrame, setPlayFrame] = useState(0);
   const [eatFrame, setEatFrame] = useState(0);
   const [upsetFrame, setUpsetFrame] = useState(0);
 
@@ -343,14 +350,16 @@ export default function HomeScreen() {
   // Update playing ref when toy selection changes
   useEffect(() => {
     isPlayingRef.current = selectedToy !== null;
-
-    // Add a timeout to check if it stays the same
-    setTimeout(() => {}, 1000);
+    if (!selectedToy) {
+      setIsShaking(false);
+      setIsPlaying(false);
+    }
   }, [selectedToy]);
 
-  // Accelerometer listener for shake detection
+  // Accelerometer listener for shake detection and play animation control
   useEffect(() => {
     let subscription: any;
+    let shakeTimeout: NodeJS.Timeout | null = null;
 
     const setupAccelerometer = async () => {
       await Accelerometer.setUpdateInterval(100);
@@ -371,16 +380,24 @@ export default function HomeScreen() {
               mood: Math.min(1, prev.mood + 0.01),
             };
           });
+          setIsShaking(true);
+          if (shakeTimeout) clearTimeout(shakeTimeout);
+          // If shaking, keep isShaking true, and start animation if not already
+          setIsPlaying(true);
+          // Set a timeout to detect when shaking stops (no shake for 600ms)
+          shakeTimeout = setTimeout(() => {
+            setIsShaking(false);
+          }, 600);
         }
       });
     };
 
     setupAccelerometer();
-
     applyOfflineDecay();
 
     return () => {
       subscription?.remove();
+      if (shakeTimeout) clearTimeout(shakeTimeout);
     };
   }, []);
 
@@ -426,6 +443,53 @@ export default function HomeScreen() {
       isAnimating = false;
     };
   }, [isFeeding]);
+
+  // Play animation: only play while shaking, and finish cycle when shaking stops
+  useEffect(() => {
+    if (!isPlaying) {
+      setPlayFrame(0);
+      return;
+    }
+
+    let isAnimating = true;
+    let startTime = Date.now();
+    let finished = false;
+
+    const animate = () => {
+      if (!isAnimating) return;
+
+      const elapsed = Date.now() - startTime;
+      let frameIdx = Math.floor((elapsed / 1000) * PLAYING_FPS);
+      if (frameIdx >= PLAYING_FRAME_COUNT) {
+        frameIdx = PLAYING_FRAME_COUNT - 1;
+        finished = true;
+      }
+      setPlayFrame(frameIdx);
+
+      // If shaking, keep looping
+      if (isShaking) {
+        if (frameIdx === PLAYING_FRAME_COUNT - 1) {
+          // Restart animation
+          startTime = Date.now();
+          finished = false;
+        }
+        requestAnimationFrame(animate);
+      } else {
+        // Not shaking: finish current cycle, then stop
+        if (frameIdx < PLAYING_FRAME_COUNT - 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setIsPlaying(false);
+        }
+      }
+    };
+
+    animate();
+
+    return () => {
+      isAnimating = false;
+    };
+  }, [isPlaying, isShaking]);
 
   // Upset animation effect - plays once when meter drops below 10%
   useEffect(() => {
@@ -543,12 +607,14 @@ export default function HomeScreen() {
             }}
           >
             <ZibuSprite
+              isPlaying={isPlaying}
               isUpset={isUpset}
               isSleeping={isSleeping}
               isFeeding={isFeeding}
               frame={frame}
               sleepFrame={sleepFrame}
               eatFrame={eatFrame}
+              playFrame={playFrame}
               upsetFrame={upsetFrame}
               DISPLAY_SIZE={DISPLAY_SIZE}
               COLS={COLS}
@@ -559,6 +625,8 @@ export default function HomeScreen() {
               EAT_ROWS={EAT_ROWS}
               UPSET_COLS={UPSET_COLS}
               UPSET_ROWS={UPSET_ROWS}
+              PLAYING_COLS={PLAYING_COLS}
+              PLAYING_ROWS={PLAYING_ROWS}
             />
           </View>
           {selectedFood && (
@@ -706,6 +774,7 @@ export default function HomeScreen() {
             setSelectedFood(null);
             setSelectedCleanTool(null);
             setIsSleeping(false);
+            setIsPlaying(true);
             setSelectedSleepItem(null);
             setToySwatchOpen(false);
           }}

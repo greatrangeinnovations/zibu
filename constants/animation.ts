@@ -20,3 +20,8 @@ export const UPSET_FRAME_COUNT = 5;
 export const UPSET_COLS = 5; // 5 columns
 export const UPSET_ROWS = 1; // 1 row
 export const UPSET_FPS = 15;
+
+export const PLAYING_FRAME_COUNT = 24;
+export const PLAYING_ROWS = 4; // 4 rows
+export const PLAYING_COLS = 6; // 6 columns
+export const PLAYING_FPS = 15;

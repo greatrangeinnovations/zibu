@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Image } from "expo-image";
 import {
   View,
   Text,
@@ -57,10 +58,17 @@ import type { NeedKey } from "./types";
 const DECAY_PER_TICK = 0.01; // how much to lose each tick (0.01 = 1%)
 const TICK_MS = 300000; // how often to decay, in ms
 
+const HATCH_SHAKE_TARGET = 20; // Number of shakes required to hatch
+const HATCH_STORAGE_KEY = "zibu_hatched_v1";
+
 export default function HomeScreen() {
   // Needs state
   const [needs, setNeeds] = useState<Record<NeedKey, number> | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Hatching state
+  const [isHatched, setIsHatched] = useState<boolean | null>(null);
+  const [hatchShakeCount, setHatchShakeCount] = useState(0);
 
   // Track which action is currently active
   const [activeMode, setActiveMode] = useState<ActiveMode>(null);
@@ -142,48 +150,38 @@ export default function HomeScreen() {
     })
   ).current;
 
-  // Initialize: load needs from storage and apply offline decay
+  // Initialize: load needs and hatching state from storage
   useEffect(() => {
-    const initializeNeeds = async () => {
+    const initialize = async () => {
       try {
+        // Load hatching state
+        const hatchedRaw = await AsyncStorage.getItem(HATCH_STORAGE_KEY);
+        setIsHatched(hatchedRaw === "true");
+
+        // Load needs
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) {
-          // Load stored needs
           const saved: StoredNeeds = JSON.parse(raw);
           const now = Date.now();
           const elapsedMs = now - saved.lastUpdated;
-
           if (elapsedMs > 0) {
-            // Apply offline decay
             const decayPerMs = getDecayPerMs(DECAY_PER_TICK, TICK_MS);
             setNeeds(applyDecay(saved.needs, decayPerMs, elapsedMs));
           } else {
             setNeeds(saved.needs);
           }
         } else {
-          // First time: use defaults
-          setNeeds({
-            mood: 0.5,
-            hunger: 0.04,
-            clean: 0.5,
-            rest: 0.1,
-          });
+          setNeeds({ mood: 0.5, hunger: 0.04, clean: 0.5, rest: 0.1 });
         }
       } catch (e) {
-        console.warn("Failed to initialize needs", e);
-        // Fallback to defaults
-        setNeeds({
-          mood: 0.5,
-          hunger: 0.04,
-          clean: 0.5,
-          rest: 0.1,
-        });
+        console.warn("Failed to initialize needs/hatch", e);
+        setNeeds({ mood: 0.5, hunger: 0.04, clean: 0.5, rest: 0.1 });
+        setIsHatched(false);
       } finally {
         setIsInitialized(true);
       }
     };
-
-    initializeNeeds();
+    initialize();
   }, []);
 
   useEffect(() => {
@@ -356,7 +354,7 @@ export default function HomeScreen() {
     }
   }, [selectedToy]);
 
-  // Accelerometer listener for shake detection and play animation control
+  // Accelerometer for hatching and play
   useEffect(() => {
     let subscription: any;
     let shakeTimeout: NodeJS.Timeout | null = null;
@@ -367,7 +365,21 @@ export default function HomeScreen() {
         const acceleration = Math.sqrt(x * x + y * y + z * z);
         const now = Date.now();
 
+        // Hatching screen: count shakes
+        if (isHatched === false && acceleration > 2) {
+          setHatchShakeCount((count) => {
+            const next = count + 1;
+            if (next >= HATCH_SHAKE_TARGET) {
+              setIsHatched(true);
+              AsyncStorage.setItem(HATCH_STORAGE_KEY, "true");
+            }
+            return next;
+          });
+        }
+
+        // Main app play logic
         if (
+          isHatched &&
           acceleration > 2 &&
           isPlayingRef.current &&
           now - lastShakeRef.current > 500
@@ -382,9 +394,7 @@ export default function HomeScreen() {
           });
           setIsShaking(true);
           if (shakeTimeout) clearTimeout(shakeTimeout);
-          // If shaking, keep isShaking true, and start animation if not already
           setIsPlaying(true);
-          // Set a timeout to detect when shaking stops (no shake for 600ms)
           shakeTimeout = setTimeout(() => {
             setIsShaking(false);
           }, 600);
@@ -399,7 +409,7 @@ export default function HomeScreen() {
       subscription?.remove();
       if (shakeTimeout) clearTimeout(shakeTimeout);
     };
-  }, []);
+  }, [isHatched]);
 
   // Sleep effect: increase rested by 1% per second when sleeping
   useEffect(() => {
@@ -581,13 +591,58 @@ export default function HomeScreen() {
     }
   };
 
-  if (!isInitialized || needs === null) {
+  // Show loading or hatching screen
+  if (!isInitialized || needs === null || isHatched === null) {
     return (
       <SafeAreaView style={styles.container}>
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
         >
           <Text>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!isHatched) {
+    // Hatching screen
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: "#F6F6F6" }]}>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <Image
+            source={require("./assets/egg/egg.png")}
+            style={{ width: 220, height: 220, marginBottom: 32 }}
+            contentFit="contain"
+          />
+          <Text style={{ fontSize: 28, fontWeight: "700", marginBottom: 12 }}>
+            Shake to Hatch!
+          </Text>
+          <View
+            style={{
+              width: 180,
+              height: 18,
+              backgroundColor: "#eee",
+              borderRadius: 9,
+              overflow: "hidden",
+              marginBottom: 16,
+            }}
+          >
+            <View
+              style={{
+                width: `${Math.min(
+                  100,
+                  (hatchShakeCount / HATCH_SHAKE_TARGET) * 100
+                )}%`,
+                height: "100%",
+                backgroundColor: "#6DD19C",
+              }}
+            />
+          </View>
+          <Text style={{ fontSize: 16, color: "#888" }}>
+            {hatchShakeCount} / {HATCH_SHAKE_TARGET} shakes
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -679,6 +734,25 @@ export default function HomeScreen() {
             onPress={() => setCoinModalOpen(true)}
           >
             <FontAwesome5 name="cog" size={22} color="#888" />
+          </Pressable>
+          {/* TEMPORARY: Reset Egg button for testing */}
+          <Pressable
+            style={{
+              marginLeft: 16,
+              backgroundColor: "#E94F37",
+              paddingHorizontal: 16,
+              paddingVertical: 6,
+              borderRadius: 8,
+            }}
+            onPress={async () => {
+              await AsyncStorage.removeItem(HATCH_STORAGE_KEY);
+              setIsHatched(false);
+              setHatchShakeCount(0);
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
+              Reset Egg
+            </Text>
           </Pressable>
         </View>
         <Modal

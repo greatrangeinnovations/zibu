@@ -63,7 +63,7 @@ export default function ZibuSprite({
   } else if (isSleeping) {
     return (
       <ExpoImage
-        source={require("../assets/sleep/sleep_spritesheet.png")}
+        source={require("../assets/sleep/sleeping_spritesheet.png")}
         style={{
           width: DISPLAY_SIZE * SLEEP_COLS,
           height: DISPLAY_SIZE * SLEEP_ROWS,
@@ -105,7 +105,7 @@ export default function ZibuSprite({
   } else {
     return (
       <ExpoImage
-        source={require("../assets/happy-blink/blink_spritesheet.png")}
+        source={require("../assets/blinking/blinking_spritesheet.png")}
         style={{
           width: DISPLAY_SIZE * COLS,
           height: DISPLAY_SIZE * ROWS,

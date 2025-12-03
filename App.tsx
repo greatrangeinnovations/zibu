@@ -766,7 +766,7 @@ export default function HomeScreen() {
         <SwatchModal
           visible={toySwatchOpen}
           title="Select Toy"
-          items={[{ key: "ball", label: "Deflated Ball", icon: "circle" }]}
+          items={[{ key: "ball", label: "Deflated Ball", icon: "futbol" }]}
           selectedKey={selectedToy}
           onSelect={(key) => {
             setActiveMode("play");

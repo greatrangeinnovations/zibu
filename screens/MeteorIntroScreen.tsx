@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -17,15 +17,26 @@ export default function MeteorIntroScreen({
 }: {
   onContinue: () => void;
 }) {
+  const fullText =
+    "A glowing meteor just landed quietly… and left behind a strange little egg!";
+  const [displayedText, setDisplayedText] = useState("");
+
+  useEffect(() => {
+    let i = 0;
+    const interval = setInterval(() => {
+      setDisplayedText(fullText.slice(0, i + 1));
+      i++;
+      if (i >= fullText.length) clearInterval(interval);
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <ImageBackground source={meteorImg} style={styles.bg} resizeMode="cover">
       <Pressable style={styles.overlay} onPress={onContinue}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.text}>
-            A glowing meteor just landed quietly… and left behind a strange
-            little egg!
-          </Text>
-        </ScrollView>
+        <View style={styles.bottomContainer}>
+          <Text style={styles.text}>{displayedText}</Text>
+        </View>
       </Pressable>
     </ImageBackground>
   );
@@ -43,19 +54,19 @@ const styles = StyleSheet.create({
     flex: 1,
     width: "100%",
     height: "100%",
-    justifyContent: "center",
+    justifyContent: "flex-end",
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.3)",
   },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: "center",
+  bottomContainer: {
+    width: "100%",
+    paddingHorizontal: 32,
+    paddingBottom: 48,
     alignItems: "center",
-    padding: 32,
   },
   text: {
     color: "#fff",
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "700",
     textAlign: "center",
     textShadowColor: "#222",

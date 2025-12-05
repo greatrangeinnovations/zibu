@@ -19,6 +19,7 @@ import styles from "./App.styles";
 import StatusCircle from "./components/StatusCircle";
 import SwatchModal from "./components/SwatchModal";
 import ZibuSprite from "./components/ZibuSprite";
+import { useCoins } from "./contexts/CoinContext";
 import {
   FRAME_COUNT,
   COLS,
@@ -62,6 +63,7 @@ const HATCH_SHAKE_TARGET = 20; // Number of shakes required to hatch
 const HATCH_STORAGE_KEY = "zibu_hatched_v1";
 
 export default function HomeScreen() {
+  const { coins } = useCoins();
   // Needs state
   const [needs, setNeeds] = useState<Record<NeedKey, number> | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -118,9 +120,8 @@ export default function HomeScreen() {
   // Upset state
   const [isUpset, setIsUpset] = useState(false);
 
-  // Coin modal and coins
+  // Coin modal
   const [coinModalOpen, setCoinModalOpen] = useState(false);
-  const [coins, setCoins] = useState(1250);
 
   // Refs for effects and gesture state
   const isCleaningRef = useRef(false);

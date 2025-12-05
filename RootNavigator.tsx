@@ -1,10 +1,12 @@
 import React from "react";
+import { Pressable, Text } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import HomeScreen from "./HomeScreen";
+import { CoinProvider } from "./contexts/CoinContext";
 import ShopScreen from "./screens/ShopScreen";
-import HistoryScreen from "./screens/HistoryScreen";
+import MemoryGameScreen from "./screens/MemoryGameScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 
 const Tab = createBottomTabNavigator();
@@ -34,7 +36,16 @@ function MainTabs() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Shop" component={ShopScreen} />
-      <Tab.Screen name="History" component={HistoryScreen} />
+      <Tab.Screen
+        name="Minigame"
+        component={MemoryGameScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <FontAwesome5 name="gamepad" size={size} color={color} />
+          ),
+          tabBarLabel: "Minigame",
+        }}
+      />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -42,8 +53,10 @@ function MainTabs() {
 
 export default function RootNavigator() {
   return (
-    <NavigationContainer>
-      <MainTabs />
-    </NavigationContainer>
+    <CoinProvider>
+      <NavigationContainer>
+        <MainTabs />
+      </NavigationContainer>
+    </CoinProvider>
   );
 }

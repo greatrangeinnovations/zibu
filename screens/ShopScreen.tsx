@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useCoins } from "../contexts/CoinContext";
 import {
   View,
   Text,
@@ -18,7 +19,7 @@ const SHOP_ITEMS = [
 ];
 
 export default function ShopScreen() {
-  const [coins, setCoins] = useState(1250); // TODO: sync with global coins if needed
+  const { coins, subtractCoins } = useCoins();
   const [purchased, setPurchased] = useState<{ [key: string]: boolean }>({});
 
   const handlePurchase = (item: (typeof SHOP_ITEMS)[0]) => {
@@ -29,7 +30,7 @@ export default function ShopScreen() {
       );
       return;
     }
-    setCoins((c) => c - item.price);
+    subtractCoins(item.price);
     setPurchased((prev) => ({ ...prev, [item.key]: true }));
     Alert.alert("Purchased!", `You bought a ${item.label}.`);
   };

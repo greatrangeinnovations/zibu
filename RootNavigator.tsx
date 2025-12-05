@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Animated, Easing } from "react-native";
 import { View, Text, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
@@ -62,9 +63,11 @@ const METEOR_INTRO_STORAGE_KEY = "zibu_meteor_intro_seen_v1";
 export default function RootNavigator() {
   const [step, setStep] = useState<"intro" | "egg" | "main">("intro");
   const [hatchShakeCount, setHatchShakeCount] = useState(0);
+  const [eggAnimStage, setEggAnimStage] = useState<0 | 1 | 2>(0); // 0: still, 1: basic, 2: intense
   const shakeThreshold = 1.2;
-  const requiredShakes = 20;
+  const requiredShakes = 60;
   const lastShakeRef = useRef(Date.now());
+  const eggAnim = useRef(new Animated.Value(0)).current;
 
   // Initialize onboarding state from storage
   useEffect(() => {
@@ -109,6 +112,9 @@ export default function RootNavigator() {
           lastShakeRef.current = now;
           setHatchShakeCount((count) => {
             const next = count + 1;
+            // Animation stage logic
+            if (next === 20) setEggAnimStage(1);
+            if (next === 40) setEggAnimStage(2);
             if (next >= requiredShakes) {
               AsyncStorage.setItem(HATCH_STORAGE_KEY, "true");
               setStep("main");
@@ -124,6 +130,50 @@ export default function RootNavigator() {
     };
   }, [step]);
 
+  // Animate egg when anim stage changes
+  useEffect(() => {
+    if (eggAnimStage === 1) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(eggAnim, {
+            toValue: 1,
+            duration: 200,
+            easing: Easing.linear,
+            useNativeDriver: true,
+          }),
+          Animated.timing(eggAnim, {
+            toValue: -1,
+            duration: 200,
+            easing: Easing.linear,
+            useNativeDriver: true,
+          }),
+        ]),
+        { iterations: -1 }
+      ).start();
+    } else if (eggAnimStage === 2) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(eggAnim, {
+            toValue: 2,
+            duration: 120,
+            easing: Easing.linear,
+            useNativeDriver: true,
+          }),
+          Animated.timing(eggAnim, {
+            toValue: -2,
+            duration: 120,
+            easing: Easing.linear,
+            useNativeDriver: true,
+          }),
+        ]),
+        { iterations: -1 }
+      ).start();
+    } else {
+      eggAnim.stopAnimation();
+      eggAnim.setValue(0);
+    }
+  }, [eggAnimStage]);
+
   // Meteor intro screen
   if (step === "intro") {
     return (
@@ -138,16 +188,43 @@ export default function RootNavigator() {
 
   // Egg shake screen
   if (step === "egg") {
+    // Egg shake animation: translateX for shake effect
+    let shakeRange = 0;
+    if (eggAnimStage === 1) shakeRange = 10;
+    if (eggAnimStage === 2) shakeRange = 30;
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: "#F6F6F6" }}>
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
         >
-          <Image
-            source={require("./assets/egg/egg.png")}
-            style={{ width: 220, height: 220, marginBottom: 32 }}
-            contentFit="contain"
-          />
+          <Animated.View
+            style={{
+              marginBottom: 32,
+              transform: [
+                {
+                  translateX: eggAnim.interpolate({
+                    inputRange: [-2, 2],
+                    outputRange: [-shakeRange, shakeRange],
+                  }),
+                },
+                {
+                  rotate: eggAnim.interpolate({
+                    inputRange: [-2, 2],
+                    outputRange: [
+                      eggAnimStage === 2 ? "-18deg" : "-8deg",
+                      eggAnimStage === 2 ? "18deg" : "8deg",
+                    ],
+                  }),
+                },
+              ],
+            }}
+          >
+            <Image
+              source={require("./assets/egg/egg.png")}
+              style={{ width: 220, height: 220 }}
+              contentFit="contain"
+            />
+          </Animated.View>
           <Text style={{ fontSize: 28, fontWeight: "700", marginBottom: 12 }}>
             Shake to Hatch!
           </Text>

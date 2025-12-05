@@ -1,5 +1,12 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable, SafeAreaView } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+} from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { useCoins } from "../contexts/CoinContext";
 
@@ -21,7 +28,11 @@ export default function GamesScreen({ navigation }: any) {
         </View>
       </View>
 
-      <View style={styles.gamesContainer}>
+      <ScrollView
+        style={styles.gamesContainer}
+        contentContainerStyle={styles.gamesContent}
+        showsVerticalScrollIndicator={false}
+      >
         <Pressable
           style={styles.gameCard}
           onPress={() => navigation.navigate("MemoryGame")}
@@ -48,7 +59,16 @@ export default function GamesScreen({ navigation }: any) {
           <Text style={styles.gameName}>Space Defense</Text>
           <Text style={styles.gameDesc}>Survive and destroy enemies</Text>
         </Pressable>
-      </View>
+
+        <Pressable
+          style={styles.gameCard}
+          onPress={() => navigation.navigate("TiltMaze")}
+        >
+          <FontAwesome5 name="circle" size={48} color="#6DD19C" />
+          <Text style={styles.gameName}>Tilt Maze</Text>
+          <Text style={styles.gameDesc}>Roll the orb through the maze</Text>
+        </Pressable>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -83,9 +103,11 @@ const styles = StyleSheet.create({
   },
   gamesContainer: {
     flex: 1,
+  },
+  gamesContent: {
     padding: 24,
-    justifyContent: "center",
     gap: 24,
+    paddingBottom: 32,
   },
   gameCard: {
     backgroundColor: "#fff",

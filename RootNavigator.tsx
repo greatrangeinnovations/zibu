@@ -16,6 +16,7 @@ import GamesScreen from "./screens/GamesScreen";
 import MemoryGameScreen from "./screens/MemoryGameScreen";
 import SequenceGameScreen from "./screens/SequenceGameScreen";
 import SpaceGameScreen from "./screens/SpaceGameScreen";
+import TiltMazeGameScreen from "./screens/TiltMazeGameScreen";
 import BackpackScreen from "./screens/BackpackScreen";
 import MeteorIntroScreen from "./screens/MeteorIntroScreen";
 
@@ -33,6 +34,7 @@ function GamesNavigator() {
       <GamesStack.Screen name="MemoryGame" component={MemoryGameScreen} />
       <GamesStack.Screen name="SequenceGame" component={SequenceGameScreen} />
       <GamesStack.Screen name="SpaceGame" component={SpaceGameScreen} />
+      <GamesStack.Screen name="TiltMaze" component={TiltMazeGameScreen} />
     </GamesStack.Navigator>
   );
 }

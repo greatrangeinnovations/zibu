@@ -54,6 +54,7 @@ export default function TiltMazeGameScreen({ navigation }: any) {
   const orbYRef = useRef(initialY);
   const accelerometerSubscriptionRef = useRef<any>(null);
   const gameWonRef = useRef(false);
+  const frictionRef = useRef(0.95);
 
   // Collectibles positioned in the maze
   const collectiblesRef = useRef<Collectible[]>([
@@ -153,8 +154,8 @@ export default function TiltMazeGameScreen({ navigation }: any) {
     const subscription = Accelerometer.addListener(({ x, y, z }) => {
       // x is roll (tilt left-right), y is pitch (tilt forward-backward)
       // Use stronger multiplier for more noticeable response
-      orbVelXRef.current = -x * 15;
-      orbVelYRef.current = y * 15;
+      orbVelXRef.current = -x * 12;
+      orbVelYRef.current = y * 12;
     });
 
     accelerometerSubscriptionRef.current = subscription;
@@ -171,9 +172,9 @@ export default function TiltMazeGameScreen({ navigation }: any) {
     if (!gameActive || gameOver) return;
 
     const gameLoopInterval = setInterval(() => {
-      // Apply friction to velocity
-      orbVelXRef.current *= 0.92;
-      orbVelYRef.current *= 0.92;
+      // Apply lighter friction to velocity - allows continuous tilt control
+      orbVelXRef.current *= frictionRef.current;
+      orbVelYRef.current *= frictionRef.current;
 
       // Update X position
       let newX = orbXRef.current + orbVelXRef.current;

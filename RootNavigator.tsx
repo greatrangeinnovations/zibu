@@ -1,5 +1,9 @@
-import React from "react";
-import { Pressable, Text } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { View, Text, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Image } from "expo-image";
+import { Accelerometer } from "expo-sensors";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { FontAwesome5 } from "@expo/vector-icons";
@@ -8,6 +12,7 @@ import { CoinProvider } from "./contexts/CoinContext";
 import ShopScreen from "./screens/ShopScreen";
 import MemoryGameScreen from "./screens/MemoryGameScreen";
 import ProfileScreen from "./screens/ProfileScreen";
+import MeteorIntroScreen from "./screens/MeteorIntroScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -51,7 +56,145 @@ function MainTabs() {
   );
 }
 
+const HATCH_STORAGE_KEY = "zibu_hatched_v1";
+const METEOR_INTRO_STORAGE_KEY = "zibu_meteor_intro_seen_v1";
+
 export default function RootNavigator() {
+  const [step, setStep] = useState<"intro" | "egg" | "main">("intro");
+  const [hatchShakeCount, setHatchShakeCount] = useState(0);
+  const shakeThreshold = 1.2;
+  const requiredShakes = 20;
+  const lastShakeRef = useRef(Date.now());
+
+  // Initialize onboarding state from storage
+  useEffect(() => {
+    const initializeOnboarding = async () => {
+      try {
+        const meteorSeen = await AsyncStorage.getItem(METEOR_INTRO_STORAGE_KEY);
+        const hatched = await AsyncStorage.getItem(HATCH_STORAGE_KEY);
+
+        if (meteorSeen === "true" && hatched === "true") {
+          setStep("main");
+        } else if (meteorSeen === "true") {
+          setStep("egg");
+        } else {
+          setStep("intro");
+        }
+      } catch (e) {
+        console.warn("Failed to initialize onboarding", e);
+        setStep("intro");
+      }
+    };
+    initializeOnboarding();
+  }, []);
+
+  // Reset function for onboarding
+  const resetOnboarding = async () => {
+    await AsyncStorage.removeItem(HATCH_STORAGE_KEY);
+    await AsyncStorage.removeItem(METEOR_INTRO_STORAGE_KEY);
+    setHatchShakeCount(0);
+    setStep("intro");
+  };
+
+  // Only run shake effect when on egg screen
+  useEffect(() => {
+    if (step !== "egg") return;
+    let subscription: any;
+    Accelerometer.setUpdateInterval(100);
+    subscription = Accelerometer.addListener(({ x, y, z }) => {
+      const magnitude = Math.sqrt(x * x + y * y + z * z);
+      if (magnitude > shakeThreshold) {
+        const now = Date.now();
+        if (now - lastShakeRef.current > 400) {
+          lastShakeRef.current = now;
+          setHatchShakeCount((count) => {
+            const next = count + 1;
+            if (next >= requiredShakes) {
+              AsyncStorage.setItem(HATCH_STORAGE_KEY, "true");
+              setStep("main");
+              subscription && subscription.remove();
+            }
+            return next;
+          });
+        }
+      }
+    });
+    return () => {
+      subscription && subscription.remove();
+    };
+  }, [step]);
+
+  // Meteor intro screen
+  if (step === "intro") {
+    return (
+      <MeteorIntroScreen
+        onContinue={async () => {
+          await AsyncStorage.setItem(METEOR_INTRO_STORAGE_KEY, "true");
+          setStep("egg");
+        }}
+      />
+    );
+  }
+
+  // Egg shake screen
+  if (step === "egg") {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#F6F6F6" }}>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <Image
+            source={require("./assets/egg/egg.png")}
+            style={{ width: 220, height: 220, marginBottom: 32 }}
+            contentFit="contain"
+          />
+          <Text style={{ fontSize: 28, fontWeight: "700", marginBottom: 12 }}>
+            Shake to Hatch!
+          </Text>
+          <View
+            style={{
+              width: 180,
+              height: 18,
+              backgroundColor: "#eee",
+              borderRadius: 9,
+              overflow: "hidden",
+              marginBottom: 16,
+            }}
+          >
+            <View
+              style={{
+                width: `${Math.min(
+                  100,
+                  (hatchShakeCount / requiredShakes) * 100
+                )}%`,
+                height: "100%",
+                backgroundColor: "#6DD19C",
+              }}
+            />
+          </View>
+          <Text style={{ fontSize: 16, color: "#888" }}>
+            {hatchShakeCount} / {requiredShakes} shakes
+          </Text>
+          <Pressable
+            style={{
+              marginTop: 32,
+              backgroundColor: "#E94F37",
+              paddingHorizontal: 16,
+              paddingVertical: 6,
+              borderRadius: 8,
+            }}
+            onPress={resetOnboarding}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
+              Reset Egg
+            </Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Main app with navigation
   return (
     <CoinProvider>
       <NavigationContainer>

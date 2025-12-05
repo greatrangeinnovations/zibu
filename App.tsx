@@ -747,6 +747,7 @@ export default function HomeScreen() {
             }}
             onPress={async () => {
               await AsyncStorage.removeItem(HATCH_STORAGE_KEY);
+              await AsyncStorage.removeItem("zibu_meteor_intro_seen_v1");
               setIsHatched(false);
               setHatchShakeCount(0);
             }}

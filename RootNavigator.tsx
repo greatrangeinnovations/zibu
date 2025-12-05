@@ -15,7 +15,7 @@ import ShopScreen from "./screens/ShopScreen";
 import GamesScreen from "./screens/GamesScreen";
 import MemoryGameScreen from "./screens/MemoryGameScreen";
 import SequenceGameScreen from "./screens/SequenceGameScreen";
-import ProfileScreen from "./screens/ProfileScreen";
+import BackpackScreen from "./screens/BackpackScreen";
 import MeteorIntroScreen from "./screens/MeteorIntroScreen";
 
 const Tab = createBottomTabNavigator();
@@ -45,7 +45,7 @@ function MainTabs() {
           if (route.name === "Home") iconName = "home";
           else if (route.name === "Shop") iconName = "shopping-bag";
           else if (route.name === "History") iconName = "history";
-          else if (route.name === "Profile") iconName = "user";
+          else if (route.name === "Backpack") iconName = "backpack";
           return <FontAwesome5 name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "#6DD19C",
@@ -71,7 +71,16 @@ function MainTabs() {
           tabBarLabel: "Games",
         }}
       />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen
+        name="Backpack"
+        component={BackpackScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <FontAwesome5 name="backpack" size={size} color={color} />
+          ),
+          tabBarLabel: "Backpack",
+        }}
+      />
     </Tab.Navigator>
   );
 }

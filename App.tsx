@@ -8,6 +8,7 @@ import {
   Pressable,
   Modal,
   PanResponder,
+  Alert,
 } from "react-native";
 import { AppState, AppStateStatus } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -64,6 +65,7 @@ const HATCH_STORAGE_KEY = "zibu_hatched_v1";
 
 export default function HomeScreen() {
   const { coins } = useCoins();
+  const { food, subtractFood } = useCoins();
   // Needs state
   const [needs, setNeeds] = useState<Record<NeedKey, number> | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -685,15 +687,16 @@ export default function HomeScreen() {
               PLAYING_ROWS={PLAYING_ROWS}
             />
           </View>
-          {selectedFood && (
+          {selectedFood && food > 0 && (
             <Pressable
               onPressIn={() => {
                 setIsSleeping(false); // Stop sleeping if feeding
                 isFeedingRef.current = true; // Start eat animation
                 setIsFeeding(true); // Trigger re-render for eat animation
-                // Start feeding interval - increase by 1% per second while holding
+                // Start feeding interval - consume 1 food per second, increase hunger by 1% per second
                 if (!feedIntervalRef.current) {
                   feedIntervalRef.current = setInterval(() => {
+                    subtractFood(1); // Consume 1 food
                     setNeeds((prev) => {
                       if (!prev) return null;
                       return {
@@ -881,6 +884,14 @@ export default function HomeScreen() {
         </Pressable>
         <Pressable
           onPress={() => {
+            if (food === 0) {
+              Alert.alert(
+                "No Food!",
+                "You don't have any food. Buy some from the shop to feed Zibu.",
+                [{ text: "OK" }]
+              );
+              return;
+            }
             setActiveMode(null);
             setSelectedFood(null);
             setSelectedCleanTool(null);
@@ -890,7 +901,7 @@ export default function HomeScreen() {
             setFoodSwatchOpen(true);
           }}
           style={[
-            { flex: 1, alignItems: "center" },
+            { flex: 1, alignItems: "center", justifyContent: "center" },
             activeMode === "feed" && styles.selectedActionButton,
           ]}
         >

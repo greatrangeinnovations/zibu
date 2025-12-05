@@ -19,7 +19,7 @@ const SHOP_ITEMS = [
 ];
 
 export default function ShopScreen() {
-  const { coins, subtractCoins } = useCoins();
+  const { coins, subtractCoins, food, addFood } = useCoins();
   const [purchased, setPurchased] = useState<{ [key: string]: boolean }>({});
 
   const handlePurchase = (item: (typeof SHOP_ITEMS)[0]) => {
@@ -30,6 +30,21 @@ export default function ShopScreen() {
       );
       return;
     }
+
+    // Handle food purchase differently - it's consumable
+    if (item.key === "food") {
+      subtractCoins(item.price);
+      addFood(100); // 100 coins = 100 food points
+      Alert.alert("Purchased!", `You bought food worth 100 hunger points!`);
+      return;
+    }
+
+    // Handle other items (one-time purchases)
+    if (purchased[item.key]) {
+      Alert.alert("Already owned", "You already own this item.");
+      return;
+    }
+
     subtractCoins(item.price);
     setPurchased((prev) => ({ ...prev, [item.key]: true }));
     Alert.alert("Purchased!", `You bought a ${item.label}.`);
@@ -61,19 +76,33 @@ export default function ShopScreen() {
               color="#6DD19C"
               style={{ marginRight: 16 }}
             />
-            <Text style={styles.itemLabel}>{item.label}</Text>
+            <View style={styles.itemInfo}>
+              <Text style={styles.itemLabel}>{item.label}</Text>
+              {item.key === "food" && (
+                <Text style={styles.itemSubtitle}>100 hunger points</Text>
+              )}
+            </View>
             <Text style={styles.itemPrice}>{item.price} coins</Text>
             <Pressable
               style={[
                 styles.buyButton,
-                (coins < item.price || purchased[item.key]) &&
+                coins < item.price && styles.buyButtonDisabled,
+                item.key !== "food" &&
+                  purchased[item.key] &&
                   styles.buyButtonDisabled,
               ]}
               onPress={() => handlePurchase(item)}
-              disabled={coins < item.price || purchased[item.key]}
+              disabled={
+                coins < item.price ||
+                (item.key !== "food" && purchased[item.key])
+              }
             >
               <Text style={styles.buyButtonText}>
-                {purchased[item.key] ? "Owned" : "Buy"}
+                {item.key === "food"
+                  ? "Buy"
+                  : purchased[item.key]
+                  ? "Owned"
+                  : "Buy"}
               </Text>
             </Pressable>
           </View>
@@ -127,10 +156,18 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  itemLabel: {
+  itemInfo: {
     flex: 1,
+    marginLeft: 0,
+  },
+  itemLabel: {
     fontSize: 18,
     fontWeight: "500",
+  },
+  itemSubtitle: {
+    fontSize: 12,
+    color: "#999",
+    marginTop: 4,
   },
   itemPrice: {
     fontSize: 16,

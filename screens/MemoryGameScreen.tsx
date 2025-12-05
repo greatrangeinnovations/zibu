@@ -64,7 +64,10 @@ export default function MemoryGameScreen({ navigation }: any) {
         addCoins(1);
         Alert.alert("You win!", "You found all pairs and earned 1 coin!", [
           { text: "Play Again", onPress: resetGame },
-          { text: "Back", onPress: () => navigation.goBack() },
+          {
+            text: "Back to Games",
+            onPress: () => navigation.navigate("Games"),
+          },
         ]);
       }, 500);
     }
@@ -86,6 +89,9 @@ export default function MemoryGameScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <Pressable onPress={() => navigation.navigate("Games")}>
+          <FontAwesome5 name="chevron-left" size={24} color="#333" />
+        </Pressable>
         <Text style={styles.title}>Memory Game</Text>
         <View style={styles.coinRow}>
           <FontAwesome5
@@ -129,17 +135,21 @@ const styles = StyleSheet.create({
     backgroundColor: "#F6F6F6",
   },
   header: {
-    paddingTop: 32,
-    paddingBottom: 16,
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
     alignItems: "center",
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
     backgroundColor: "#fff",
+    justifyContent: "space-between",
   },
   title: {
-    fontSize: 32,
+    fontSize: 20,
     fontWeight: "700",
-    marginBottom: 8,
+    flex: 1,
+    marginLeft: 12,
   },
   coinRow: {
     flexDirection: "row",

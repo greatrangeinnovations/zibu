@@ -6,16 +6,34 @@ import { Image } from "expo-image";
 import { Accelerometer } from "expo-sensors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import HomeScreen from "./HomeScreen";
 import { CoinProvider } from "./contexts/CoinContext";
 import ShopScreen from "./screens/ShopScreen";
+import GamesScreen from "./screens/GamesScreen";
 import MemoryGameScreen from "./screens/MemoryGameScreen";
+import SequenceGameScreen from "./screens/SequenceGameScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import MeteorIntroScreen from "./screens/MeteorIntroScreen";
 
 const Tab = createBottomTabNavigator();
+const GamesStack = createNativeStackNavigator();
+
+function GamesNavigator() {
+  return (
+    <GamesStack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <GamesStack.Screen name="Games" component={GamesScreen} />
+      <GamesStack.Screen name="MemoryGame" component={MemoryGameScreen} />
+      <GamesStack.Screen name="SequenceGame" component={SequenceGameScreen} />
+    </GamesStack.Navigator>
+  );
+}
 
 function MainTabs() {
   return (
@@ -43,13 +61,14 @@ function MainTabs() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Shop" component={ShopScreen} />
       <Tab.Screen
-        name="Minigame"
-        component={MemoryGameScreen}
+        name="Games"
+        component={GamesNavigator}
         options={{
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <FontAwesome5 name="gamepad" size={size} color={color} />
           ),
-          tabBarLabel: "Minigame",
+          tabBarLabel: "Games",
         }}
       />
       <Tab.Screen name="Profile" component={ProfileScreen} />

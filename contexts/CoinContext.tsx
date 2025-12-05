@@ -27,10 +27,10 @@ export const CoinProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const storedCoins = await AsyncStorage.getItem("coins");
         const storedFood = await AsyncStorage.getItem("food");
-        
+
         if (storedCoins !== null) setCoins(Number(storedCoins));
         if (storedFood !== null) setFood(Number(storedFood));
-        
+
         setIsLoaded(true);
       } catch (error) {
         console.error("Failed to load from AsyncStorage:", error);
@@ -42,7 +42,7 @@ export const CoinProvider: React.FC<{ children: React.ReactNode }> = ({
   // Persist coins whenever they change
   useEffect(() => {
     if (isLoaded) {
-      AsyncStorage.setItem("coins", coins.toString()).catch(error => 
+      AsyncStorage.setItem("coins", coins.toString()).catch((error) =>
         console.error("Failed to save coins:", error)
       );
     }
@@ -51,7 +51,7 @@ export const CoinProvider: React.FC<{ children: React.ReactNode }> = ({
   // Persist food whenever it changes
   useEffect(() => {
     if (isLoaded) {
-      AsyncStorage.setItem("food", food.toString()).catch(error => 
+      AsyncStorage.setItem("food", food.toString()).catch((error) =>
         console.error("Failed to save food:", error)
       );
     }

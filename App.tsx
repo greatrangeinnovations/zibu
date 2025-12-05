@@ -131,6 +131,7 @@ export default function HomeScreen() {
   const isFeedingRef = useRef(false);
   const lastShakeRef = useRef<number>(0);
   const feedIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const foodUsedRef = useRef(0); // Track food used in current feeding session
   const hasPlayedUpsetRef = useRef(false);
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
@@ -693,10 +694,25 @@ export default function HomeScreen() {
                 setIsSleeping(false); // Stop sleeping if feeding
                 isFeedingRef.current = true; // Start eat animation
                 setIsFeeding(true); // Trigger re-render for eat animation
+                foodUsedRef.current = 0; // Reset food used counter
                 // Start feeding interval - consume 1 food per second, increase hunger by 1% per second
                 if (!feedIntervalRef.current) {
                   feedIntervalRef.current = setInterval(() => {
+                    // Only feed if we still have food available
+                    if (food - foodUsedRef.current <= 0) {
+                      // Stop feeding if no food left
+                      if (feedIntervalRef.current) {
+                        clearInterval(feedIntervalRef.current);
+                        feedIntervalRef.current = null;
+                      }
+                      isFeedingRef.current = false;
+                      setIsFeeding(false);
+                      return;
+                    }
+
                     subtractFood(1); // Consume 1 food
+                    foodUsedRef.current += 1; // Track how much food we used
+
                     setNeeds((prev) => {
                       if (!prev) return null;
                       return {
@@ -710,11 +726,12 @@ export default function HomeScreen() {
               onPressOut={() => {
                 isFeedingRef.current = false; // Stop eat animation
                 setIsFeeding(false); // Trigger re-render for eat animation
-                // Stop feeding interval when release
+                // Stop feeding interval immediately when release
                 if (feedIntervalRef.current) {
                   clearInterval(feedIntervalRef.current);
                   feedIntervalRef.current = null;
                 }
+                foodUsedRef.current = 0; // Reset counter
               }}
               style={StyleSheet.absoluteFill}
             >

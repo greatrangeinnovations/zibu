@@ -36,13 +36,18 @@ export default function ShopScreen() {
         );
         return;
       }
+      // Deduct coins first
       subtractCoins(totalCost);
+      // Add food
       addFood(foodQuantity); // Each coin = 1 food point
-      Alert.alert(
-        "Purchased!",
-        `You bought ${foodQuantity} food for ${totalCost} coins!`
-      );
-      setFoodQuantity(1); // Reset slider
+      // Show alert and reset slider
+      setTimeout(() => {
+        Alert.alert(
+          "Purchased!",
+          `You bought ${foodQuantity} food for ${totalCost} coins!`,
+          [{ text: "OK", onPress: () => setFoodQuantity(1) }]
+        );
+      }, 100);
       return;
     }
 

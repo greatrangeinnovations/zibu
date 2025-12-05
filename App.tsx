@@ -20,7 +20,7 @@ import styles from "./App.styles";
 import StatusCircle from "./components/StatusCircle";
 import SwatchModal from "./components/SwatchModal";
 import ZibuSprite from "./components/ZibuSprite";
-import { useCoins } from "./contexts/CoinContext";
+import { useCoins, FOOD_TYPES } from "./contexts/CoinContext";
 import {
   FRAME_COUNT,
   COLS,
@@ -64,8 +64,7 @@ const HATCH_SHAKE_TARGET = 20; // Number of shakes required to hatch
 const HATCH_STORAGE_KEY = "zibu_hatched_v1";
 
 export default function HomeScreen() {
-  const { coins } = useCoins();
-  const { food, subtractFood } = useCoins();
+  const { coins, inventory, subtractInventoryItem, getTotalFood } = useCoins();
   // Needs state
   const [needs, setNeeds] = useState<Record<NeedKey, number> | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -153,6 +152,15 @@ export default function HomeScreen() {
       },
     })
   ).current;
+
+  // Refs for feeding
+  const selectedFoodHungerIncreaseRef = useRef(0);
+  const inventoryRef = useRef(inventory);
+
+  // Keep inventory ref in sync with context
+  useEffect(() => {
+    inventoryRef.current = inventory;
+  }, [inventory]);
 
   // Initialize: load needs and hatching state from storage
   useEffect(() => {
@@ -688,38 +696,57 @@ export default function HomeScreen() {
               PLAYING_ROWS={PLAYING_ROWS}
             />
           </View>
-          {selectedFood && food > 0 && (
+          {selectedFood && getTotalFood() > 0 && (
             <Pressable
               onPressIn={() => {
                 setIsSleeping(false); // Stop sleeping if feeding
                 isFeedingRef.current = true; // Start eat animation
                 setIsFeeding(true); // Trigger re-render for eat animation
                 foodUsedRef.current = 0; // Reset food used counter
-                // Start feeding interval - consume 1 food per second, increase hunger by 1% per second
+
+                // Set the hunger increase rate based on selected food
+                const selectedFoodKey = selectedFood as keyof typeof inventory;
+                const food = FOOD_TYPES[selectedFoodKey];
+                selectedFoodHungerIncreaseRef.current =
+                  food.hungerRestore / 100;
+
+                // Start feeding interval - consume 1 food per second, increase hunger by appropriate amount per second
                 if (!feedIntervalRef.current) {
                   feedIntervalRef.current = setInterval(() => {
-                    // Only feed if we still have food available
-                    if (food - foodUsedRef.current <= 0) {
-                      // Stop feeding if no food left
+                    // Check if the selected food type is available using ref
+                    const selectedFoodKey =
+                      selectedFood as keyof typeof inventory;
+                    if (
+                      !selectedFoodKey ||
+                      !inventoryRef.current ||
+                      inventoryRef.current[selectedFoodKey] <= 0
+                    ) {
+                      // Stop feeding if selected food type is gone
                       if (feedIntervalRef.current) {
                         clearInterval(feedIntervalRef.current);
                         feedIntervalRef.current = null;
                       }
                       isFeedingRef.current = false;
                       setIsFeeding(false);
+                      selectedFoodHungerIncreaseRef.current = 0;
                       return;
                     }
 
-                    subtractFood(1); // Consume 1 food
-                    foodUsedRef.current += 1; // Track how much food we used
+                    // Use the selected food type
+                    subtractInventoryItem(selectedFoodKey, 1);
 
                     setNeeds((prev) => {
                       if (!prev) return null;
                       return {
                         ...prev,
-                        hunger: Math.min(1, prev.hunger + 0.01),
+                        hunger: Math.min(
+                          1,
+                          prev.hunger + selectedFoodHungerIncreaseRef.current
+                        ),
                       };
                     });
+
+                    foodUsedRef.current += 1; // Track how much food we used
                   }, 1000);
                 }
               }}
@@ -824,7 +851,13 @@ export default function HomeScreen() {
         <SwatchModal
           visible={foodSwatchOpen}
           title="Select Food"
-          items={[{ key: "bottle", label: "Bottle", icon: "wine-bottle" }]}
+          items={Object.entries(FOOD_TYPES)
+            .filter(([key, _]) => inventory[key as keyof typeof inventory] > 0)
+            .map(([key, food]) => ({
+              key,
+              label: food.label,
+              icon: food.icon as any,
+            }))}
           selectedKey={selectedFood}
           onSelect={(key) => {
             setActiveMode("feed");
@@ -901,7 +934,7 @@ export default function HomeScreen() {
         </Pressable>
         <Pressable
           onPress={() => {
-            if (food === 0) {
+            if (getTotalFood() === 0) {
               Alert.alert(
                 "No Food!",
                 "You don't have any food. Buy some from the shop to feed Zibu.",

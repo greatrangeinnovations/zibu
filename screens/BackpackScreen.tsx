@@ -1,10 +1,10 @@
 import React from "react";
-import { View, Text, StyleSheet, SafeAreaView } from "react-native";
+import { View, Text, StyleSheet, SafeAreaView, ScrollView } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
-import { useCoins } from "../contexts/CoinContext";
+import { useCoins, FOOD_TYPES } from "../contexts/CoinContext";
 
 export default function BackpackScreen() {
-  const { food, coins } = useCoins();
+  const { inventory, coins, getTotalFood } = useCoins();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -21,21 +21,31 @@ export default function BackpackScreen() {
         </View>
       </View>
 
-      <View style={styles.content}>
-        <View style={styles.itemCard}>
-          <FontAwesome5
-            name="utensils"
-            size={48}
-            color="#6DD19C"
-            style={{ marginBottom: 16 }}
-          />
-          <Text style={styles.itemLabel}>Food</Text>
-          <Text style={styles.itemAmount}>{food}</Text>
-          <Text style={styles.itemDescription}>
-            Each food provides 1 hunger point
-          </Text>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.totalCard}>
+          <Text style={styles.totalLabel}>Total Food</Text>
+          <Text style={styles.totalAmount}>{getTotalFood()}</Text>
         </View>
-      </View>
+
+        {Object.entries(FOOD_TYPES).map(([key, food]) => (
+          <View key={key} style={styles.itemCard}>
+            <FontAwesome5
+              name={food.icon as any}
+              size={32}
+              color="#6DD19C"
+              style={{ marginBottom: 12 }}
+            />
+            <Text style={styles.itemLabel}>{food.label}</Text>
+            <Text style={styles.itemAmount}>
+              {inventory[key as keyof typeof inventory]}
+            </Text>
+            <Text style={styles.itemDescription}>
+              {food.hungerRestore}% hunger restore
+            </Text>
+            <Text style={styles.itemPrice}>{food.price} coins</Text>
+          </View>
+        ))}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -69,15 +79,38 @@ const styles = StyleSheet.create({
     color: "#6DD19C",
   },
   content: {
-    flex: 1,
+    padding: 16,
+    paddingBottom: 32,
+  },
+  totalCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
     padding: 24,
-    justifyContent: "flex-start",
+    alignItems: "center",
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  totalLabel: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 8,
+  },
+  totalAmount: {
+    fontSize: 48,
+    fontWeight: "700",
+    color: "#6DD19C",
   },
   itemCard: {
     backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 32,
+    padding: 20,
     alignItems: "center",
+    marginBottom: 12,
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -85,20 +118,27 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   itemLabel: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: "700",
     color: "#333",
-    marginBottom: 12,
+    marginBottom: 8,
+    textAlign: "center",
   },
   itemAmount: {
-    fontSize: 48,
+    fontSize: 32,
     fontWeight: "700",
     color: "#6DD19C",
-    marginBottom: 12,
+    marginBottom: 4,
   },
   itemDescription: {
-    fontSize: 14,
-    color: "#999",
+    fontSize: 12,
+    color: "#888",
+    marginBottom: 8,
     textAlign: "center",
+  },
+  itemPrice: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#F4D35E",
   },
 });

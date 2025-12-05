@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useCoins } from "../contexts/CoinContext";
+import { useCoins, FOOD_TYPES } from "../contexts/CoinContext";
 import {
   View,
   Text,
@@ -9,49 +9,40 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
-import Slider from "@react-native-community/slider";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FontAwesome5 } from "@expo/vector-icons";
 
 const SHOP_ITEMS = [
-  { key: "food", label: "Food", price: 1, icon: "utensils" },
   { key: "toy", label: "Toy", price: 250, icon: "futbol" },
   { key: "blanket", label: "Blanket", price: 400, icon: "bed" },
   { key: "sponge", label: "Sponge", price: 150, icon: "bath" },
 ];
 
 export default function ShopScreen() {
-  const { coins, subtractCoins, food, addFood } = useCoins();
+  const { coins, subtractCoins, addInventoryItem, inventory } = useCoins();
   const [purchased, setPurchased] = useState<{ [key: string]: boolean }>({});
-  const [foodQuantity, setFoodQuantity] = useState(1);
 
-  const handlePurchase = (item: (typeof SHOP_ITEMS)[0]) => {
-    // Handle food purchase with slider quantity
-    if (item.key === "food") {
-      const totalCost = item.price * foodQuantity;
-      if (coins < totalCost) {
-        Alert.alert(
-          "Not enough coins",
-          `You need ${totalCost} coins but only have ${coins}.`
-        );
-        return;
-      }
-      // Deduct coins first
-      subtractCoins(totalCost);
-      // Add food
-      addFood(foodQuantity); // Each coin = 1 food point
-      // Show alert and reset slider
-      setTimeout(() => {
-        Alert.alert(
-          "Purchased!",
-          `You bought ${foodQuantity} food for ${totalCost} coins!`,
-          [{ text: "OK", onPress: () => setFoodQuantity(1) }]
-        );
-      }, 100);
+  const handleFoodPurchase = (
+    foodId: "star_milk" | "cosmic_fruit" | "galaxy_noodle",
+    food: (typeof FOOD_TYPES)[keyof typeof FOOD_TYPES]
+  ) => {
+    const totalCost = food.price;
+    if (coins < totalCost) {
+      Alert.alert(
+        "Not enough coins",
+        `You need ${totalCost} coins but only have ${coins}.`
+      );
       return;
     }
+    subtractCoins(totalCost);
+    addInventoryItem(foodId, 1);
+    Alert.alert(
+      "Purchased!",
+      `You bought ${food.label} for ${totalCost} coins!`
+    );
+  };
 
-    // Handle other items (one-time purchases)
+  const handlePurchase = (item: (typeof SHOP_ITEMS)[0]) => {
     if (coins < item.price) {
       Alert.alert(
         "Not enough coins",
@@ -85,57 +76,46 @@ export default function ShopScreen() {
         </View>
       </View>
       <ScrollView contentContainerStyle={styles.list}>
-        {/* Food item with slider */}
-        <View style={styles.foodCard}>
-          <View style={styles.foodHeader}>
-            <FontAwesome5
-              name="utensils"
-              size={28}
-              color="#6DD19C"
-              style={{ marginRight: 16 }}
-            />
-            <View style={styles.itemInfo}>
-              <Text style={styles.itemLabel}>Food</Text>
-              <Text style={styles.itemSubtitle}>
-                {foodQuantity} hunger points
-              </Text>
+        {/* Food items section */}
+        <Text style={styles.sectionTitle}>Food</Text>
+        {Object.entries(FOOD_TYPES).map(([foodId, food]) => (
+          <View key={foodId} style={styles.foodCard}>
+            <View style={styles.foodHeader}>
+              <FontAwesome5
+                name={food.icon as any}
+                size={28}
+                color="#6DD19C"
+                style={{ marginRight: 16 }}
+              />
+              <View style={styles.foodInfo}>
+                <Text style={styles.itemLabel}>{food.label}</Text>
+                <Text style={styles.itemSubtitle}>
+                  +{food.hungerRestore}% hunger
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.priceContainer}>
+              <Text style={styles.itemPrice}>{food.price} coins</Text>
+              <Pressable
+                style={[
+                  styles.buyButton,
+                  coins < food.price && styles.buyButtonDisabled,
+                ]}
+                onPress={() => handleFoodPurchase(foodId as any, food)}
+                disabled={coins < food.price}
+              >
+                <Text style={styles.buyButtonText}>Buy</Text>
+              </Pressable>
             </View>
           </View>
+        ))}
 
-          <View style={styles.sliderContainer}>
-            <Text style={styles.quantityLabel}>Quantity: {foodQuantity}</Text>
-            <Slider
-              style={styles.slider}
-              minimumValue={1}
-              maximumValue={100}
-              value={foodQuantity}
-              onValueChange={(value: number) =>
-                setFoodQuantity(Math.round(value))
-              }
-              step={1}
-              minimumTrackTintColor="#6DD19C"
-              maximumTrackTintColor="#ddd"
-              thumbTintColor="#6DD19C"
-            />
-          </View>
-
-          <View style={styles.priceContainer}>
-            <Text style={styles.totalPrice}>Total: {foodQuantity} coins</Text>
-            <Pressable
-              style={[
-                styles.buyButton,
-                coins < foodQuantity && styles.buyButtonDisabled,
-              ]}
-              onPress={() => handlePurchase(SHOP_ITEMS[0])}
-              disabled={coins < foodQuantity}
-            >
-              <Text style={styles.buyButtonText}>Buy</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Other items */}
-        {SHOP_ITEMS.slice(1).map((item) => (
+        {/* Other items section */}
+        <Text style={styles.sectionTitle} onPress={() => {}}>
+          Items
+        </Text>
+        {SHOP_ITEMS.map((item) => (
           <View key={item.key} style={styles.itemRow}>
             <FontAwesome5
               name={item.icon as any}
@@ -196,13 +176,22 @@ const styles = StyleSheet.create({
     color: "#6DD19C",
   },
   list: {
-    padding: 24,
+    padding: 16,
+    paddingBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#333",
+    marginTop: 12,
+    marginBottom: 12,
+    marginLeft: 4,
   },
   foodCard: {
     backgroundColor: "#fff",
     borderRadius: 12,
-    padding: 18,
-    marginBottom: 18,
+    padding: 16,
+    marginBottom: 12,
     shadowColor: "#000",
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -212,25 +201,16 @@ const styles = StyleSheet.create({
   foodHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  sliderContainer: {
-    marginBottom: 16,
-  },
-  quantityLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 8,
-  },
-  slider: {
-    width: "100%",
-    height: 40,
+  foodInfo: {
+    flex: 1,
   },
   priceContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginTop: 12,
   },
   totalPrice: {
     fontSize: 16,
@@ -242,8 +222,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
     borderRadius: 12,
-    padding: 18,
-    marginBottom: 18,
+    padding: 16,
+    marginBottom: 12,
     shadowColor: "#000",
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -256,7 +236,8 @@ const styles = StyleSheet.create({
   },
   itemLabel: {
     fontSize: 18,
-    fontWeight: "500",
+    fontWeight: "600",
+    color: "#333",
   },
   itemSubtitle: {
     fontSize: 12,
@@ -265,12 +246,13 @@ const styles = StyleSheet.create({
   },
   itemPrice: {
     fontSize: 16,
-    color: "#888",
-    marginRight: 16,
+    fontWeight: "600",
+    color: "#F4D35E",
+    marginRight: 12,
   },
   buyButton: {
     backgroundColor: "#6DD19C",
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
@@ -280,6 +262,6 @@ const styles = StyleSheet.create({
   buyButtonText: {
     color: "#fff",
     fontWeight: "700",
-    fontSize: 16,
+    fontSize: 14,
   },
 });

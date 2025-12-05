@@ -19,23 +19,43 @@ export const CoinProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [coins, setCoins] = useState<number>(0);
   const [food, setFood] = useState<number>(0);
+  const [isLoaded, setIsLoaded] = useState(false);
 
+  // Load from AsyncStorage on mount
   useEffect(() => {
     (async () => {
-      const stored = await AsyncStorage.getItem("coins");
-      if (stored !== null) setCoins(Number(stored));
-      const storedFood = await AsyncStorage.getItem("food");
-      if (storedFood !== null) setFood(Number(storedFood));
+      try {
+        const storedCoins = await AsyncStorage.getItem("coins");
+        const storedFood = await AsyncStorage.getItem("food");
+        
+        if (storedCoins !== null) setCoins(Number(storedCoins));
+        if (storedFood !== null) setFood(Number(storedFood));
+        
+        setIsLoaded(true);
+      } catch (error) {
+        console.error("Failed to load from AsyncStorage:", error);
+        setIsLoaded(true);
+      }
     })();
   }, []);
 
+  // Persist coins whenever they change
   useEffect(() => {
-    AsyncStorage.setItem("coins", coins.toString());
-  }, [coins]);
+    if (isLoaded) {
+      AsyncStorage.setItem("coins", coins.toString()).catch(error => 
+        console.error("Failed to save coins:", error)
+      );
+    }
+  }, [coins, isLoaded]);
 
+  // Persist food whenever it changes
   useEffect(() => {
-    AsyncStorage.setItem("food", food.toString());
-  }, [food]);
+    if (isLoaded) {
+      AsyncStorage.setItem("food", food.toString()).catch(error => 
+        console.error("Failed to save food:", error)
+      );
+    }
+  }, [food, isLoaded]);
 
   const addCoins = (amount: number) => setCoins((c) => c + amount);
   const subtractCoins = (amount: number) =>

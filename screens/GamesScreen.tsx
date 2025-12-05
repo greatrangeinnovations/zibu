@@ -39,6 +39,15 @@ export default function GamesScreen({ navigation }: any) {
           <Text style={styles.gameName}>Sequence</Text>
           <Text style={styles.gameDesc}>Memorize the sequence</Text>
         </Pressable>
+
+        <Pressable
+          style={styles.gameCard}
+          onPress={() => navigation.navigate("SpaceGame")}
+        >
+          <FontAwesome5 name="rocket" size={48} color="#6DD19C" />
+          <Text style={styles.gameName}>Space Defense</Text>
+          <Text style={styles.gameDesc}>Survive and destroy enemies</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );

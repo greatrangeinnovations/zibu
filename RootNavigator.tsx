@@ -15,6 +15,7 @@ import ShopScreen from "./screens/ShopScreen";
 import GamesScreen from "./screens/GamesScreen";
 import MemoryGameScreen from "./screens/MemoryGameScreen";
 import SequenceGameScreen from "./screens/SequenceGameScreen";
+import SpaceGameScreen from "./screens/SpaceGameScreen";
 import BackpackScreen from "./screens/BackpackScreen";
 import MeteorIntroScreen from "./screens/MeteorIntroScreen";
 
@@ -31,6 +32,7 @@ function GamesNavigator() {
       <GamesStack.Screen name="Games" component={GamesScreen} />
       <GamesStack.Screen name="MemoryGame" component={MemoryGameScreen} />
       <GamesStack.Screen name="SequenceGame" component={SequenceGameScreen} />
+      <GamesStack.Screen name="SpaceGame" component={SpaceGameScreen} />
     </GamesStack.Navigator>
   );
 }

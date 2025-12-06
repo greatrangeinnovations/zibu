@@ -64,7 +64,13 @@ const HATCH_SHAKE_TARGET = 20; // Number of shakes required to hatch
 const HATCH_STORAGE_KEY = "zibu_hatched_v1";
 
 export default function HomeScreen() {
-  const { coins, inventory, subtractInventoryItem, getTotalFood } = useCoins();
+  const {
+    coins,
+    inventory,
+    subtractInventoryItem,
+    getTotalFood,
+    subtractCoins,
+  } = useCoins();
   // Needs state
   const [needs, setNeeds] = useState<Record<NeedKey, number> | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -72,6 +78,9 @@ export default function HomeScreen() {
   // Hatching state
   const [isHatched, setIsHatched] = useState<boolean | null>(null);
   const [hatchShakeCount, setHatchShakeCount] = useState(0);
+
+  // APS (Alien Protective Services) state
+  const [isTakenByAPS, setIsTakenByAPS] = useState(false);
 
   // Track which action is currently active
   const [activeMode, setActiveMode] = useState<ActiveMode>(null);
@@ -158,10 +167,17 @@ export default function HomeScreen() {
   const selectedFoodHungerIncreaseRef = useRef(0);
   const inventoryRef = useRef(inventory);
 
-  // Keep inventory ref in sync with context
+  // Monitor needs to detect if all are at 0
   useEffect(() => {
-    inventoryRef.current = inventory;
-  }, [inventory]);
+    if (!needs) return;
+
+    const allNeeds = Object.values(needs);
+    const allAtZero = allNeeds.every((value) => value <= 0);
+
+    if (allAtZero && !isTakenByAPS) {
+      setIsTakenByAPS(true);
+    }
+  }, [needs, isTakenByAPS]);
 
   // Initialize: load needs and hatching state from storage
   useEffect(() => {
@@ -697,6 +713,114 @@ export default function HomeScreen() {
           <Text style={{ fontSize: 16, color: "#888" }}>
             {hatchShakeCount} / {HATCH_SHAKE_TARGET} shakes
           </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isTakenByAPS) {
+    // APS taken Zibu screen
+    const handleRescueZibu = async () => {
+      if (coins >= 5) {
+        subtractCoins(5);
+        setIsTakenByAPS(false);
+        // Reset needs to default values
+        setNeeds({
+          mood: 0.5,
+          hunger: 0.5,
+          clean: 0.5,
+          rest: 0.5,
+        });
+      } else {
+        Alert.alert(
+          "Not Enough Coins",
+          "You need 5 coins to rescue Zibu from APS!"
+        );
+      }
+    };
+
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: "#1a1a2e" }]}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            paddingHorizontal: 20,
+          }}
+        >
+          <FontAwesome5
+            name="space-shuttle"
+            size={80}
+            color="#FF6B6B"
+            style={{ marginBottom: 20 }}
+          />
+          <Text
+            style={{
+              fontSize: 32,
+              fontWeight: "700",
+              color: "#fff",
+              marginBottom: 12,
+              textAlign: "center",
+            }}
+          >
+            Zibu Taken by APS!
+          </Text>
+          <Text
+            style={{
+              fontSize: 16,
+              color: "#ccc",
+              marginBottom: 24,
+              textAlign: "center",
+            }}
+          >
+            The Alien Protective Services have taken Zibu due to poor care. Pay
+            5 coins to get them back!
+          </Text>
+          <View
+            style={{
+              backgroundColor: "#FF6B6B",
+              padding: 12,
+              borderRadius: 8,
+              marginBottom: 20,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: "700",
+                color: "#fff",
+                textAlign: "center",
+              }}
+            >
+              Cost: 5 coins
+            </Text>
+          </View>
+          <Text
+            style={{
+              fontSize: 16,
+              color: "#aaa",
+              marginBottom: 32,
+              textAlign: "center",
+            }}
+          >
+            Current coins: {coins}
+          </Text>
+          <Pressable
+            onPress={handleRescueZibu}
+            style={{
+              paddingVertical: 12,
+              paddingHorizontal: 24,
+              backgroundColor: coins >= 5 ? "#6DD19C" : "#999",
+              borderRadius: 8,
+              width: "100%",
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontSize: 18, fontWeight: "600", color: "#fff" }}>
+              {coins >= 5 ? "Rescue Zibu" : "Not Enough Coins"}
+            </Text>
+          </Pressable>
         </View>
       </SafeAreaView>
     );

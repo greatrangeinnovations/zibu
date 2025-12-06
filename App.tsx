@@ -133,6 +133,7 @@ export default function HomeScreen() {
   const foodUsedRef = useRef(0); // Track food used in current feeding session
   const hasPlayedUpsetRef = useRef(false);
   const appState = useRef<AppStateStatus>(AppState.currentState);
+  const decayIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -201,11 +202,17 @@ export default function HomeScreen() {
       const prevState = appState.current;
       appState.current = nextState;
 
-      // Going to background/inactive: save needs and timestamp
+      // Going to background/inactive: save needs, timestamp, and pause decay interval
       if (
         prevState === "active" &&
         (nextState === "inactive" || nextState === "background")
       ) {
+        // Pause the decay interval
+        if (decayIntervalRef.current) {
+          clearInterval(decayIntervalRef.current);
+          decayIntervalRef.current = null;
+        }
+
         if (needs !== null) {
           const data: StoredNeeds = {
             needs,
@@ -218,7 +225,7 @@ export default function HomeScreen() {
           }
         }
       }
-      // Came back to foreground: apply offline decay
+      // Came back to foreground: apply offline decay and resume decay interval
       if (
         (prevState === "inactive" || prevState === "background") &&
         nextState === "active"
@@ -563,18 +570,53 @@ export default function HomeScreen() {
   // Slowly decrease each need over time
   useEffect(() => {
     if (!isInitialized) return; // Wait for initialization
-    const interval = setInterval(() => {
-      setNeeds((prev) => {
-        if (!prev) return null;
-        const next: Record<NeedKey, number> = { ...prev };
-        (Object.keys(next) as NeedKey[]).forEach((key) => {
-          next[key] = Math.max(0, next[key] - DECAY_PER_TICK);
-        });
-        return next;
-      });
-    }, TICK_MS);
 
-    return () => clearInterval(interval);
+    // Only start decay interval if app is active
+    if (appState.current === "active") {
+      decayIntervalRef.current = setInterval(() => {
+        setNeeds((prev) => {
+          if (!prev) return null;
+          const next: Record<NeedKey, number> = { ...prev };
+          (Object.keys(next) as NeedKey[]).forEach((key) => {
+            next[key] = Math.max(0, next[key] - DECAY_PER_TICK);
+          });
+          return next;
+        });
+      }, TICK_MS);
+    }
+
+    return () => {
+      if (decayIntervalRef.current) {
+        clearInterval(decayIntervalRef.current);
+        decayIntervalRef.current = null;
+      }
+    };
+  }, [isInitialized]);
+
+  // Resume decay interval when returning to foreground
+  useEffect(() => {
+    const handleAppStateChange = (nextState: AppStateStatus) => {
+      if (
+        nextState === "active" &&
+        isInitialized &&
+        !decayIntervalRef.current
+      ) {
+        // Restart the decay interval when returning to foreground
+        decayIntervalRef.current = setInterval(() => {
+          setNeeds((prev) => {
+            if (!prev) return null;
+            const next: Record<NeedKey, number> = { ...prev };
+            (Object.keys(next) as NeedKey[]).forEach((key) => {
+              next[key] = Math.max(0, next[key] - DECAY_PER_TICK);
+            });
+            return next;
+          });
+        }, TICK_MS);
+      }
+    };
+
+    const sub = AppState.addEventListener("change", handleAppStateChange);
+    return () => sub.remove();
   }, [isInitialized]);
 
   const applyOfflineDecay = async () => {

@@ -3,8 +3,29 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { useCoins, FOOD_TYPES } from "../contexts/CoinContext";
 
+const DURABLE_ITEMS = [
+  {
+    key: "deflated_ball",
+    label: "Deflated Ball",
+    icon: "futbol",
+    description: "Toy - 25 uses",
+  },
+  {
+    key: "old_sponge",
+    label: "Old Sponge",
+    icon: "bath",
+    description: "Cleaner - 25 uses",
+  },
+  {
+    key: "tattered_blanket",
+    label: "Tattered Blanket",
+    icon: "bed",
+    description: "Sleep item - 25 uses",
+  },
+];
+
 export default function BackpackScreen() {
-  const { inventory, coins, getTotalFood } = useCoins();
+  const { inventory, coins, getTotalFood, durability } = useCoins();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -22,6 +43,8 @@ export default function BackpackScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+        {/* Food Section */}
+        <Text style={styles.sectionTitle}>Food</Text>
         <View style={styles.totalCard}>
           <Text style={styles.totalLabel}>Total Food</Text>
           <Text style={styles.totalAmount}>{getTotalFood()}</Text>
@@ -43,6 +66,47 @@ export default function BackpackScreen() {
               {food.hungerRestore}% hunger restore
             </Text>
             <Text style={styles.itemPrice}>{food.price} coins</Text>
+          </View>
+        ))}
+
+        {/* Durable Items Section */}
+        <Text style={styles.sectionTitle}>Items</Text>
+        {DURABLE_ITEMS.map((item) => (
+          <View key={item.key} style={styles.itemCard}>
+            <FontAwesome5
+              name={item.icon as any}
+              size={32}
+              color="#FF9999"
+              style={{ marginBottom: 12 }}
+            />
+            <Text style={styles.itemLabel}>{item.label}</Text>
+            <Text style={styles.itemAmount}>
+              {inventory[item.key as keyof typeof inventory]}
+            </Text>
+            <Text style={styles.itemDescription}>{item.description}</Text>
+            {inventory[item.key as keyof typeof inventory] > 0 && (
+              <View style={styles.durabilityBar}>
+                <View
+                  style={[
+                    styles.durabilityFill,
+                    {
+                      width: `${
+                        (durability[item.key as keyof typeof durability] || 0) *
+                        100
+                      }%`,
+                    },
+                  ]}
+                />
+              </View>
+            )}
+            {inventory[item.key as keyof typeof inventory] > 0 && (
+              <Text style={styles.durabilityText}>
+                {Math.round(
+                  (durability[item.key as keyof typeof durability] || 0) * 100
+                )}
+                % durable
+              </Text>
+            )}
           </View>
         ))}
       </ScrollView>
@@ -81,6 +145,14 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#333",
+    marginTop: 24,
+    marginBottom: 12,
+    marginLeft: 4,
   },
   totalCard: {
     backgroundColor: "#fff",
@@ -140,5 +212,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#F4D35E",
+  },
+  durabilityBar: {
+    width: "100%",
+    height: 8,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 4,
+    marginTop: 8,
+    marginBottom: 4,
+    overflow: "hidden",
+  },
+  durabilityFill: {
+    height: "100%",
+    backgroundColor: "#6DD19C",
+    borderRadius: 4,
+  },
+  durabilityText: {
+    fontSize: 11,
+    color: "#888",
+    fontWeight: "600",
   },
 });

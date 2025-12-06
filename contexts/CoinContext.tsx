@@ -98,10 +98,27 @@ export const CoinProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (storedCoins !== null) setCoins(Number(storedCoins));
         if (storedInventory !== null) {
-          setInventory(JSON.parse(storedInventory));
+          const parsed = JSON.parse(storedInventory);
+          // Merge with defaults to ensure all keys exist
+          const merged: Inventory = {
+            star_milk: parsed.star_milk ?? 0,
+            cosmic_fruit: parsed.cosmic_fruit ?? 0,
+            galaxy_noodle: parsed.galaxy_noodle ?? 0,
+            deflated_ball: parsed.deflated_ball ?? 0,
+            old_sponge: parsed.old_sponge ?? 0,
+            tattered_blanket: parsed.tattered_blanket ?? 0,
+          };
+          setInventory(merged);
         }
         if (storedDurability !== null) {
-          setDurability(JSON.parse(storedDurability));
+          const parsed = JSON.parse(storedDurability);
+          // Merge with defaults to ensure all keys exist
+          const merged: DurabilityState = {
+            deflated_ball: parsed.deflated_ball ?? 0,
+            old_sponge: parsed.old_sponge ?? 0,
+            tattered_blanket: parsed.tattered_blanket ?? 0,
+          };
+          setDurability(merged);
         }
 
         setIsLoaded(true);

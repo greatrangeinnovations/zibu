@@ -76,6 +76,7 @@ export default function HomeScreen() {
     durability,
     useDurableItem,
   } = useCoins();
+
   // Needs state
   const [needs, setNeeds] = useState<Record<NeedKey, number> | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -152,6 +153,9 @@ export default function HomeScreen() {
   const hasPlayedUpsetRef = useRef(false);
   const appState = useRef<AppStateStatus>(AppState.currentState);
   const decayIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const useDurableItemRef = useRef(useDurableItem);
+  const inventoryRef = useRef(inventory);
+  const durabilityRef = useRef(durability);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -159,9 +163,13 @@ export default function HomeScreen() {
       onMoveShouldSetPanResponder: () => isCleaningRef.current,
       onPanResponderRelease: (evt, gestureState) => {
         // Detect horizontal swipe (distance > 20px)
-        if (Math.abs(gestureState.dx) > 20 && isCleaningRef.current) {
+        if (
+          Math.abs(gestureState.dx) > 20 &&
+          isCleaningRef.current &&
+          inventoryRef.current.old_sponge > 0
+        ) {
           // Use 4% of the sponge's durability per swipe (25 swipes to destroy)
-          useDurableItem("old_sponge", 0.04);
+          useDurableItemRef.current("old_sponge", 0.04);
           setNeeds((prev) => {
             if (!prev) return null;
             return {
@@ -176,7 +184,6 @@ export default function HomeScreen() {
 
   // Refs for feeding
   const selectedFoodHungerIncreaseRef = useRef(0);
-  const inventoryRef = useRef(inventory);
 
   // Monitor needs to detect if all are at 0
   useEffect(() => {
@@ -421,6 +428,14 @@ export default function HomeScreen() {
     isCleaningRef.current = selectedCleanTool !== null;
   }, [selectedCleanTool]);
 
+  // Stop cleaning if sponge runs out
+  useEffect(() => {
+    if (inventory.old_sponge === 0 && selectedCleanTool !== null) {
+      setSelectedCleanTool(null);
+      isCleaningRef.current = false;
+    }
+  }, [inventory.old_sponge, selectedCleanTool]);
+
   // Keep selectedFoodRef in sync with state
   useEffect(() => {
     selectedFoodRef.current = selectedFood;
@@ -429,7 +444,9 @@ export default function HomeScreen() {
   // Keep inventoryRef in sync with context
   useEffect(() => {
     inventoryRef.current = inventory;
-  }, [inventory]);
+    durabilityRef.current = durability;
+    useDurableItemRef.current = useDurableItem;
+  }, [inventory, durability, useDurableItem]);
 
   // Update playing ref when toy selection changes
   useEffect(() => {
@@ -439,6 +456,16 @@ export default function HomeScreen() {
       setIsPlaying(false);
     }
   }, [selectedToy]);
+
+  // Stop playing if toy runs out
+  useEffect(() => {
+    if (inventory.deflated_ball === 0 && selectedToy !== null) {
+      setSelectedToy(null);
+      setIsShaking(false);
+      setIsPlaying(false);
+      isPlayingRef.current = false;
+    }
+  }, [inventory.deflated_ball, selectedToy]);
 
   // Accelerometer for hatching and play
   useEffect(() => {
@@ -473,11 +500,12 @@ export default function HomeScreen() {
           isHatched &&
           acceleration > 2 &&
           isPlayingRef.current &&
+          inventoryRef.current.deflated_ball > 0 &&
           now - lastShakeRef.current > 500
         ) {
           lastShakeRef.current = now;
           // Use 4% of the toy's durability per shake (25 shakes to destroy)
-          useDurableItem("deflated_ball", 0.04);
+          useDurableItemRef.current("deflated_ball", 0.04);
           setNeeds((prev) => {
             if (!prev) return null;
             return {
@@ -502,14 +530,19 @@ export default function HomeScreen() {
       subscription?.remove();
       if (shakeTimeout) clearTimeout(shakeTimeout);
     };
-  }, [isHatched]);
+  }, [isHatched, useDurableItem]);
 
   // Sleep effect: increase rested by 1% per second when sleeping
   useEffect(() => {
     if (!isSleeping) return;
     const interval = setInterval(() => {
-      // Use 0.4% of blanket's durability per second of sleep (25 seconds = 10%, 250 seconds = 100%)
-      useDurableItem("tattered_blanket", 0.004);
+      // Stop sleeping if blanket runs out
+      if (inventoryRef.current.tattered_blanket <= 0) {
+        setIsSleeping(false);
+        return;
+      }
+      // Use 4% of blanket's durability per second of sleep (25 seconds = 100%)
+      useDurableItemRef.current("tattered_blanket", 0.04);
       setNeeds((prev) => {
         if (!prev) return null;
         return {
@@ -519,7 +552,14 @@ export default function HomeScreen() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [isSleeping, useDurableItem]);
+  }, [isSleeping]);
+
+  // Stop sleeping if blanket runs out
+  useEffect(() => {
+    if (inventory.tattered_blanket === 0 && isSleeping) {
+      setIsSleeping(false);
+    }
+  }, [inventory.tattered_blanket, isSleeping]);
 
   // Eat animation effect - loops continuously while feeding
   useEffect(() => {

@@ -41,6 +41,16 @@ interface Inventory {
   star_milk: number;
   cosmic_fruit: number;
   galaxy_noodle: number;
+  deflated_ball: number; // toy - has durability
+  old_sponge: number; // cleaner - has durability
+  tattered_blanket: number; // sleep item - has durability
+}
+
+// Durability for durable items (0-1 scale, 0.25 = 25%)
+interface DurabilityState {
+  deflated_ball: number;
+  old_sponge: number;
+  tattered_blanket: number;
 }
 
 interface CoinContextType {
@@ -52,6 +62,9 @@ interface CoinContextType {
   addInventoryItem: (foodId: keyof Inventory, amount: number) => void;
   subtractInventoryItem: (foodId: keyof Inventory, amount: number) => void;
   getTotalFood: () => number;
+  durability: DurabilityState;
+  setDurability: (durability: DurabilityState) => void;
+  useDurableItem: (itemId: keyof DurabilityState, usage: number) => void;
 }
 
 const CoinContext = createContext<CoinContextType | undefined>(undefined);
@@ -64,6 +77,14 @@ export const CoinProvider: React.FC<{ children: React.ReactNode }> = ({
     star_milk: 0,
     cosmic_fruit: 0,
     galaxy_noodle: 0,
+    deflated_ball: 0,
+    old_sponge: 0,
+    tattered_blanket: 0,
+  });
+  const [durability, setDurability] = useState<DurabilityState>({
+    deflated_ball: 0,
+    old_sponge: 0,
+    tattered_blanket: 0,
   });
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -73,10 +94,14 @@ export const CoinProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const storedCoins = await AsyncStorage.getItem("coins");
         const storedInventory = await AsyncStorage.getItem("inventory");
+        const storedDurability = await AsyncStorage.getItem("durability");
 
         if (storedCoins !== null) setCoins(Number(storedCoins));
         if (storedInventory !== null) {
           setInventory(JSON.parse(storedInventory));
+        }
+        if (storedDurability !== null) {
+          setDurability(JSON.parse(storedDurability));
         }
 
         setIsLoaded(true);
@@ -105,6 +130,15 @@ export const CoinProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [inventory, isLoaded]);
 
+  // Persist durability whenever it changes
+  useEffect(() => {
+    if (isLoaded) {
+      AsyncStorage.setItem("durability", JSON.stringify(durability)).catch(
+        (error) => console.error("Failed to save durability:", error)
+      );
+    }
+  }, [durability, isLoaded]);
+
   const addCoins = (amount: number) => setCoins((c) => c + amount);
   const subtractCoins = (amount: number) =>
     setCoins((c) => Math.max(0, c - amount));
@@ -129,6 +163,23 @@ export const CoinProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
+  const useDurableItem = (itemId: keyof DurabilityState, usage: number) => {
+    setDurability((prev) => {
+      const newDurability = Math.max(0, prev[itemId] - usage);
+      // If durability reaches 0, remove the item
+      if (newDurability <= 0) {
+        setInventory((prevInv) => ({
+          ...prevInv,
+          [itemId]: Math.max(0, prevInv[itemId as keyof Inventory] - 1),
+        }));
+      }
+      return {
+        ...prev,
+        [itemId]: newDurability,
+      };
+    });
+  };
+
   return (
     <CoinContext.Provider
       value={{
@@ -140,6 +191,9 @@ export const CoinProvider: React.FC<{ children: React.ReactNode }> = ({
         addInventoryItem,
         subtractInventoryItem,
         getTotalFood,
+        durability,
+        setDurability,
+        useDurableItem,
       }}
     >
       {children}

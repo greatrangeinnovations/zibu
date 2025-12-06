@@ -12,15 +12,39 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FontAwesome5 } from "@expo/vector-icons";
 
-const SHOP_ITEMS = [
-  { key: "toy", label: "Toy", price: 250, icon: "futbol" },
-  { key: "blanket", label: "Blanket", price: 400, icon: "bed" },
-  { key: "sponge", label: "Sponge", price: 150, icon: "bath" },
+const DURABLE_ITEMS = [
+  {
+    key: "deflated_ball",
+    label: "Deflated Ball",
+    price: 5,
+    icon: "futbol",
+    description: "25 uses",
+  },
+  {
+    key: "old_sponge",
+    label: "Old Sponge",
+    price: 5,
+    icon: "bath",
+    description: "25 uses",
+  },
+  {
+    key: "tattered_blanket",
+    label: "Tattered Blanket",
+    price: 5,
+    icon: "bed",
+    description: "25 uses",
+  },
 ];
 
 export default function ShopScreen() {
-  const { coins, subtractCoins, addInventoryItem, inventory } = useCoins();
-  const [purchased, setPurchased] = useState<{ [key: string]: boolean }>({});
+  const {
+    coins,
+    subtractCoins,
+    addInventoryItem,
+    inventory,
+    durability,
+    setDurability,
+  } = useCoins();
 
   const handleFoodPurchase = (
     foodId: "star_milk" | "cosmic_fruit" | "galaxy_noodle",
@@ -42,23 +66,29 @@ export default function ShopScreen() {
     );
   };
 
-  const handlePurchase = (item: (typeof SHOP_ITEMS)[0]) => {
+  const handleDurableItemPurchase = (
+    itemKey: "deflated_ball" | "old_sponge" | "tattered_blanket",
+    item: (typeof DURABLE_ITEMS)[0]
+  ) => {
     if (coins < item.price) {
       Alert.alert(
         "Not enough coins",
-        "You don't have enough coins to buy this item."
+        `You need ${item.price} coins but only have ${coins}.`
       );
       return;
     }
-
-    if (purchased[item.key]) {
-      Alert.alert("Already owned", "You already own this item.");
-      return;
-    }
-
     subtractCoins(item.price);
-    setPurchased((prev) => ({ ...prev, [item.key]: true }));
-    Alert.alert("Purchased!", `You bought a ${item.label}.`);
+    addInventoryItem(itemKey, 1);
+    // Reset durability to full (100%)
+    const newDurability = {
+      ...durability,
+      [itemKey]: 1,
+    };
+    setDurability(newDurability as any);
+    Alert.alert(
+      "Purchased!",
+      `You bought ${item.label} for ${item.price} coins! It has 25 uses.`
+    );
   };
 
   return (
@@ -76,6 +106,39 @@ export default function ShopScreen() {
         </View>
       </View>
       <ScrollView contentContainerStyle={styles.list}>
+        {/* Starter items section */}
+        <Text style={styles.sectionTitle}>Starter Items</Text>
+        {DURABLE_ITEMS.map((item) => (
+          <View key={item.key} style={styles.foodCard}>
+            <View style={styles.foodHeader}>
+              <FontAwesome5
+                name={item.icon as any}
+                size={28}
+                color="#FF9999"
+                style={{ marginRight: 16 }}
+              />
+              <View style={styles.foodInfo}>
+                <Text style={styles.itemLabel}>{item.label}</Text>
+                <Text style={styles.itemSubtitle}>{item.description}</Text>
+              </View>
+            </View>
+
+            <View style={styles.priceContainer}>
+              <Text style={styles.itemPrice}>{item.price} coins</Text>
+              <Pressable
+                style={[
+                  styles.buyButton,
+                  coins < item.price && styles.buyButtonDisabled,
+                ]}
+                onPress={() => handleDurableItemPurchase(item.key as any, item)}
+                disabled={coins < item.price}
+              >
+                <Text style={styles.buyButtonText}>Buy</Text>
+              </Pressable>
+            </View>
+          </View>
+        ))}
+
         {/* Food items section */}
         <Text style={styles.sectionTitle}>Food</Text>
         {Object.entries(FOOD_TYPES).map(([foodId, food]) => (
@@ -108,38 +171,6 @@ export default function ShopScreen() {
                 <Text style={styles.buyButtonText}>Buy</Text>
               </Pressable>
             </View>
-          </View>
-        ))}
-
-        {/* Other items section */}
-        <Text style={styles.sectionTitle} onPress={() => {}}>
-          Items
-        </Text>
-        {SHOP_ITEMS.map((item) => (
-          <View key={item.key} style={styles.itemRow}>
-            <FontAwesome5
-              name={item.icon as any}
-              size={28}
-              color="#6DD19C"
-              style={{ marginRight: 16 }}
-            />
-            <View style={styles.itemInfo}>
-              <Text style={styles.itemLabel}>{item.label}</Text>
-            </View>
-            <Text style={styles.itemPrice}>{item.price} coins</Text>
-            <Pressable
-              style={[
-                styles.buyButton,
-                (coins < item.price || purchased[item.key]) &&
-                  styles.buyButtonDisabled,
-              ]}
-              onPress={() => handlePurchase(item)}
-              disabled={coins < item.price || purchased[item.key]}
-            >
-              <Text style={styles.buyButtonText}>
-                {purchased[item.key] ? "Owned" : "Buy"}
-              </Text>
-            </Pressable>
           </View>
         ))}
       </ScrollView>

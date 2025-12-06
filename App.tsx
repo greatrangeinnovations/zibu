@@ -73,6 +73,8 @@ export default function HomeScreen() {
     subtractInventoryItem,
     getTotalFood,
     subtractCoins,
+    durability,
+    useDurableItem,
   } = useCoins();
   // Needs state
   const [needs, setNeeds] = useState<Record<NeedKey, number> | null>(null);
@@ -158,6 +160,8 @@ export default function HomeScreen() {
       onPanResponderRelease: (evt, gestureState) => {
         // Detect horizontal swipe (distance > 20px)
         if (Math.abs(gestureState.dx) > 20 && isCleaningRef.current) {
+          // Use 4% of the sponge's durability per swipe (25 swipes to destroy)
+          useDurableItem("old_sponge", 0.04);
           setNeeds((prev) => {
             if (!prev) return null;
             return {
@@ -472,6 +476,8 @@ export default function HomeScreen() {
           now - lastShakeRef.current > 500
         ) {
           lastShakeRef.current = now;
+          // Use 4% of the toy's durability per shake (25 shakes to destroy)
+          useDurableItem("deflated_ball", 0.04);
           setNeeds((prev) => {
             if (!prev) return null;
             return {
@@ -502,6 +508,8 @@ export default function HomeScreen() {
   useEffect(() => {
     if (!isSleeping) return;
     const interval = setInterval(() => {
+      // Use 0.4% of blanket's durability per second of sleep (25 seconds = 10%, 250 seconds = 100%)
+      useDurableItem("tattered_blanket", 0.004);
       setNeeds((prev) => {
         if (!prev) return null;
         return {
@@ -511,7 +519,7 @@ export default function HomeScreen() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [isSleeping]);
+  }, [isSleeping, useDurableItem]);
 
   // Eat animation effect - loops continuously while feeding
   useEffect(() => {
@@ -1181,7 +1189,13 @@ export default function HomeScreen() {
         <SwatchModal
           visible={sleepSwatchOpen}
           title="Select Blanket"
-          items={[{ key: "blanket", label: "Old Blanket", icon: "dot-circle" }]}
+          items={[
+            {
+              key: "tattered_blanket",
+              label: "Tattered Blanket",
+              icon: "dot-circle",
+            },
+          ]}
           selectedKey={selectedSleepItem}
           onSelect={(key) => {
             setActiveMode("sleep");
@@ -1225,7 +1239,9 @@ export default function HomeScreen() {
         <SwatchModal
           visible={cleanSwatchOpen}
           title="Select Cleaner"
-          items={[{ key: "sponge", label: "Old Sponge", icon: "dot-circle" }]}
+          items={[
+            { key: "old_sponge", label: "Old Sponge", icon: "dot-circle" },
+          ]}
           selectedKey={selectedCleanTool}
           onSelect={(key) => {
             setActiveMode("clean");
@@ -1244,7 +1260,9 @@ export default function HomeScreen() {
         <SwatchModal
           visible={toySwatchOpen}
           title="Select Toy"
-          items={[{ key: "ball", label: "Deflated Ball", icon: "futbol" }]}
+          items={[
+            { key: "deflated_ball", label: "Deflated Ball", icon: "futbol" },
+          ]}
           selectedKey={selectedToy}
           onSelect={(key) => {
             setActiveMode("play");
@@ -1266,6 +1284,14 @@ export default function HomeScreen() {
       <View style={styles.statusRow}>
         <Pressable
           onPress={() => {
+            if (!inventory.deflated_ball) {
+              Alert.alert(
+                "No Toy!",
+                "You don't have a toy. Buy a Deflated Ball from the shop for 5 coins.",
+                [{ text: "OK" }]
+              );
+              return;
+            }
             setActiveMode(null);
             setSelectedFood(null);
             setSelectedCleanTool(null);
@@ -1308,6 +1334,14 @@ export default function HomeScreen() {
         </Pressable>
         <Pressable
           onPress={() => {
+            if (!inventory.old_sponge) {
+              Alert.alert(
+                "No Cleaner!",
+                "You don't have a cleaner. Buy an Old Sponge from the shop for 5 coins.",
+                [{ text: "OK" }]
+              );
+              return;
+            }
             setActiveMode(null);
             setSelectedFood(null);
             setSelectedCleanTool(null);
@@ -1325,6 +1359,14 @@ export default function HomeScreen() {
         </Pressable>
         <Pressable
           onPress={() => {
+            if (!inventory.tattered_blanket) {
+              Alert.alert(
+                "No Blanket!",
+                "You don't have a blanket. Buy a Tattered Blanket from the shop for 5 coins.",
+                [{ text: "OK" }]
+              );
+              return;
+            }
             setActiveMode(null);
             setSelectedFood(null);
             setSelectedCleanTool(null);

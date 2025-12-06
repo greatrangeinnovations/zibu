@@ -88,6 +88,7 @@ export default function HomeScreen() {
   // Swatch modals and selections
   const [foodSwatchOpen, setFoodSwatchOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState<string | null>(null);
+  const selectedFoodRef = useRef<string | null>(null);
 
   const [cleanSwatchOpen, setCleanSwatchOpen] = useState(false);
   const [selectedCleanTool, setSelectedCleanTool] = useState<string | null>(
@@ -379,6 +380,16 @@ export default function HomeScreen() {
   useEffect(() => {
     isCleaningRef.current = selectedCleanTool !== null;
   }, [selectedCleanTool]);
+
+  // Keep selectedFoodRef in sync with state
+  useEffect(() => {
+    selectedFoodRef.current = selectedFood;
+  }, [selectedFood]);
+
+  // Keep inventoryRef in sync with context
+  useEffect(() => {
+    inventoryRef.current = inventory;
+  }, [inventory]);
 
   // Update playing ref when toy selection changes
   useEffect(() => {
@@ -862,16 +873,18 @@ export default function HomeScreen() {
               PLAYING_ROWS={PLAYING_ROWS}
             />
           </View>
-          {selectedFood && getTotalFood() > 0 && (
+          {selectedFood && getTotalFood() > 0 && !isTakenByAPS && (
             <Pressable
               onPressIn={() => {
+                if (isTakenByAPS) return; // Prevent feeding if APS has Zibu
                 setIsSleeping(false); // Stop sleeping if feeding
                 isFeedingRef.current = true; // Start eat animation
                 setIsFeeding(true); // Trigger re-render for eat animation
                 foodUsedRef.current = 0; // Reset food used counter
 
                 // Set the hunger increase rate based on selected food
-                const selectedFoodKey = selectedFood as keyof typeof inventory;
+                const selectedFoodKey =
+                  selectedFoodRef.current as keyof typeof inventory;
                 const food = FOOD_TYPES[selectedFoodKey];
                 selectedFoodHungerIncreaseRef.current =
                   food.hungerRestore / 100;
@@ -881,7 +894,7 @@ export default function HomeScreen() {
                   feedIntervalRef.current = setInterval(() => {
                     // Check if the selected food type is available using ref
                     const selectedFoodKey =
-                      selectedFood as keyof typeof inventory;
+                      selectedFoodRef.current as keyof typeof inventory;
                     if (
                       !selectedFoodKey ||
                       !inventoryRef.current ||

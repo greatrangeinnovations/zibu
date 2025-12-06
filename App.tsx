@@ -62,6 +62,9 @@ const TICK_MS = 300000; // how often to decay, in ms
 
 const HATCH_SHAKE_TARGET = 20; // Number of shakes required to hatch
 const HATCH_STORAGE_KEY = "zibu_hatched_v1";
+const AGE_STORAGE_KEY = "zibu_age_v1"; // Timestamp when hatched
+const APS_INFRACTIONS_KEY = "zibu_aps_infractions_v1"; // Number of APS infractions
+const APS_COSTS = [10, 20, 50]; // Cost to rescue at each infraction (1st, 2nd, 3rd)
 
 export default function HomeScreen() {
   const {
@@ -78,6 +81,9 @@ export default function HomeScreen() {
   // Hatching state
   const [isHatched, setIsHatched] = useState<boolean | null>(null);
   const [hatchShakeCount, setHatchShakeCount] = useState(0);
+  const [hatchTime, setHatchTime] = useState<number | null>(null); // Timestamp when hatched
+  const [age, setAge] = useState(0); // Days old
+  const [apsInfractions, setApsInfractions] = useState(0); // Number of times taken by APS
 
   // APS (Alien Protective Services) state
   const [isTakenByAPS, setIsTakenByAPS] = useState(false);
@@ -188,6 +194,21 @@ export default function HomeScreen() {
         const hatchedRaw = await AsyncStorage.getItem(HATCH_STORAGE_KEY);
         setIsHatched(hatchedRaw === "true");
 
+        // Load age and infractions
+        const ageRaw = await AsyncStorage.getItem(AGE_STORAGE_KEY);
+        if (ageRaw) {
+          const hatchedAt = parseInt(ageRaw, 10);
+          setHatchTime(hatchedAt);
+          const ageInMs = Date.now() - hatchedAt;
+          const ageInDays = Math.floor(ageInMs / (1000 * 60 * 60 * 24));
+          setAge(ageInDays);
+        }
+
+        const infraRaw = await AsyncStorage.getItem(APS_INFRACTIONS_KEY);
+        if (infraRaw) {
+          setApsInfractions(parseInt(infraRaw, 10));
+        }
+
         // Load needs
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) {
@@ -213,6 +234,21 @@ export default function HomeScreen() {
     };
     initialize();
   }, []);
+
+  // Update age periodically
+  useEffect(() => {
+    if (!hatchTime) return;
+
+    const updateAge = () => {
+      const ageInMs = Date.now() - hatchTime;
+      const ageInDays = Math.floor(ageInMs / (1000 * 60 * 60 * 24));
+      setAge(ageInDays);
+    };
+
+    updateAge(); // Update immediately
+    const interval = setInterval(updateAge, 1000 * 60 * 60); // Update every hour
+    return () => clearInterval(interval);
+  }, [hatchTime]);
 
   useEffect(() => {
     const handleAppStateChange = async (nextState: AppStateStatus) => {
@@ -417,7 +453,12 @@ export default function HomeScreen() {
             const next = count + 1;
             if (next >= HATCH_SHAKE_TARGET) {
               setIsHatched(true);
+              const now = Date.now();
+              setHatchTime(now);
+              setAge(0);
               AsyncStorage.setItem(HATCH_STORAGE_KEY, "true");
+              AsyncStorage.setItem(AGE_STORAGE_KEY, now.toString());
+              AsyncStorage.setItem(APS_INFRACTIONS_KEY, "0");
             }
             return next;
           });
@@ -730,10 +771,26 @@ export default function HomeScreen() {
   }
 
   if (isTakenByAPS) {
-    // APS taken Zibu screen
+    // APS taken Zibu screen - with escalating costs and permanent loss on 3rd infraction
+    const currentInfraction = apsInfractions + 1; // Next infraction number
+    const isPermanentLoss = currentInfraction > 3; // Game over on 4th attempt
+    const rescueCost =
+      currentInfraction <= 3 ? APS_COSTS[currentInfraction - 1] : 0;
+
     const handleRescueZibu = async () => {
-      if (coins >= 5) {
-        subtractCoins(5);
+      if (isPermanentLoss) return; // Cannot rescue on permanent loss
+
+      if (coins >= rescueCost) {
+        subtractCoins(rescueCost);
+
+        // Increment infractions
+        const newInfraction = apsInfractions + 1;
+        setApsInfractions(newInfraction);
+        await AsyncStorage.setItem(
+          APS_INFRACTIONS_KEY,
+          newInfraction.toString()
+        );
+
         setIsTakenByAPS(false);
         // Reset needs to default values
         setNeeds({
@@ -745,9 +802,25 @@ export default function HomeScreen() {
       } else {
         Alert.alert(
           "Not Enough Coins",
-          "You need 5 coins to rescue Zibu from APS!"
+          `You need ${rescueCost} coins to rescue Zibu from APS!`
         );
       }
+    };
+
+    const handleStartOver = async () => {
+      // Reset everything for a fresh start
+      await AsyncStorage.removeItem(HATCH_STORAGE_KEY);
+      await AsyncStorage.removeItem(AGE_STORAGE_KEY);
+      await AsyncStorage.removeItem(APS_INFRACTIONS_KEY);
+      await AsyncStorage.removeItem(STORAGE_KEY);
+
+      setIsHatched(false);
+      setHatchShakeCount(0);
+      setHatchTime(null);
+      setAge(0);
+      setApsInfractions(0);
+      setIsTakenByAPS(false);
+      setNeeds(null);
     };
 
     return (
@@ -760,78 +833,163 @@ export default function HomeScreen() {
             paddingHorizontal: 20,
           }}
         >
-          <FontAwesome5
-            name="space-shuttle"
-            size={80}
-            color="#FF6B6B"
-            style={{ marginBottom: 20 }}
-          />
-          <Text
-            style={{
-              fontSize: 32,
-              fontWeight: "700",
-              color: "#fff",
-              marginBottom: 12,
-              textAlign: "center",
-            }}
-          >
-            Zibu Taken by APS!
-          </Text>
-          <Text
-            style={{
-              fontSize: 16,
-              color: "#ccc",
-              marginBottom: 24,
-              textAlign: "center",
-            }}
-          >
-            The Alien Protective Services have taken Zibu due to poor care. Pay
-            5 coins to get them back!
-          </Text>
-          <View
-            style={{
-              backgroundColor: "#FF6B6B",
-              padding: 12,
-              borderRadius: 8,
-              marginBottom: 20,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 20,
-                fontWeight: "700",
-                color: "#fff",
-                textAlign: "center",
-              }}
-            >
-              Cost: 5 coins
-            </Text>
-          </View>
-          <Text
-            style={{
-              fontSize: 16,
-              color: "#aaa",
-              marginBottom: 32,
-              textAlign: "center",
-            }}
-          >
-            Current coins: {coins}
-          </Text>
-          <Pressable
-            onPress={handleRescueZibu}
-            style={{
-              paddingVertical: 12,
-              paddingHorizontal: 24,
-              backgroundColor: coins >= 5 ? "#6DD19C" : "#999",
-              borderRadius: 8,
-              width: "100%",
-              alignItems: "center",
-            }}
-          >
-            <Text style={{ fontSize: 18, fontWeight: "600", color: "#fff" }}>
-              {coins >= 5 ? "Rescue Zibu" : "Not Enough Coins"}
-            </Text>
-          </Pressable>
+          {isPermanentLoss ? (
+            <>
+              <FontAwesome5
+                name="skull"
+                size={80}
+                color="#FF3333"
+                style={{ marginBottom: 20 }}
+              />
+              <Text
+                style={{
+                  fontSize: 32,
+                  fontWeight: "700",
+                  color: "#fff",
+                  marginBottom: 12,
+                  textAlign: "center",
+                }}
+              >
+                Zibu is Gone Forever
+              </Text>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#ccc",
+                  marginBottom: 24,
+                  textAlign: "center",
+                }}
+              >
+                The APS has permanently taken Zibu. You failed to care for them
+                too many times. Start over with a new Zibu.
+              </Text>
+              <Pressable
+                onPress={handleStartOver}
+                style={{
+                  paddingVertical: 12,
+                  paddingHorizontal: 24,
+                  backgroundColor: "#6DD19C",
+                  borderRadius: 8,
+                  width: "100%",
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{ fontSize: 18, fontWeight: "600", color: "#fff" }}
+                >
+                  Start Over with New Zibu
+                </Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <FontAwesome5
+                name="space-shuttle"
+                size={80}
+                color="#FF6B6B"
+                style={{ marginBottom: 20 }}
+              />
+              <Text
+                style={{
+                  fontSize: 32,
+                  fontWeight: "700",
+                  color: "#fff",
+                  marginBottom: 12,
+                  textAlign: "center",
+                }}
+              >
+                Zibu Taken by APS!
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: "#aaa",
+                  marginBottom: 12,
+                  textAlign: "center",
+                }}
+              >
+                Infraction #{currentInfraction} of 3
+              </Text>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#ccc",
+                  marginBottom: 24,
+                  textAlign: "center",
+                }}
+              >
+                The Alien Protective Services have taken Zibu due to poor care.
+                Pay {rescueCost} coins to get them back!
+              </Text>
+              {currentInfraction === 3 && (
+                <View
+                  style={{
+                    backgroundColor: "#FF6B6B",
+                    padding: 12,
+                    borderRadius: 8,
+                    marginBottom: 20,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "700",
+                      color: "#fff",
+                      textAlign: "center",
+                    }}
+                  >
+                    ⚠️ WARNING: One more infraction and Zibu is GONE FOREVER
+                  </Text>
+                </View>
+              )}
+              <View
+                style={{
+                  backgroundColor: "#FF6B6B",
+                  padding: 12,
+                  borderRadius: 8,
+                  marginBottom: 20,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontWeight: "700",
+                    color: "#fff",
+                    textAlign: "center",
+                  }}
+                >
+                  Cost: {rescueCost} coins
+                </Text>
+              </View>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#aaa",
+                  marginBottom: 32,
+                  textAlign: "center",
+                }}
+              >
+                Current coins: {coins}
+              </Text>
+              <Pressable
+                onPress={handleRescueZibu}
+                style={{
+                  paddingVertical: 12,
+                  paddingHorizontal: 24,
+                  backgroundColor: coins >= rescueCost ? "#6DD19C" : "#999",
+                  borderRadius: 8,
+                  width: "100%",
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{ fontSize: 18, fontWeight: "600", color: "#fff" }}
+                >
+                  {coins >= rescueCost ? "Rescue Zibu" : "Not Enough Coins"}
+                </Text>
+              </Pressable>
+            </>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -947,14 +1105,26 @@ export default function HomeScreen() {
         </View>
         {/* Top bar with coin and gear */}
         <View style={styles.topBar}>
-          <View style={styles.coinLabel}>
-            <FontAwesome5
-              name="coins"
-              size={20}
-              color="#F4D35E"
-              style={{ marginRight: 6 }}
-            />
-            <Text style={styles.coinText}>{coins.toLocaleString()}</Text>
+          <View>
+            <View style={styles.coinLabel}>
+              <FontAwesome5
+                name="coins"
+                size={20}
+                color="#F4D35E"
+                style={{ marginRight: 6 }}
+              />
+              <Text style={styles.coinText}>{coins.toLocaleString()}</Text>
+            </View>
+            <Text
+              style={{
+                fontSize: 12,
+                color: "#666",
+                marginLeft: 2,
+                marginTop: 4,
+              }}
+            >
+              Age: {age} day{age !== 1 ? "s" : ""}
+            </Text>
           </View>
           <Pressable
             style={styles.gearButton}

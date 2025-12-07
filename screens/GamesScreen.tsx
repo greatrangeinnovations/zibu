@@ -7,7 +7,7 @@ import {
   SafeAreaView,
   ScrollView,
 } from "react-native";
-import { FontAwesome5 } from "@expo/vector-icons";
+import { Brain, AudioLines, Rocket, Dice1, Coins } from "lucide-react-native";
 import { useCoins } from "../contexts/CoinContext";
 
 export default function GamesScreen({ navigation }: any) {
@@ -18,12 +18,7 @@ export default function GamesScreen({ navigation }: any) {
       <View style={styles.header}>
         <Text style={styles.title}>Games</Text>
         <View style={styles.coinRow}>
-          <FontAwesome5
-            name="coins"
-            size={20}
-            color="#F4D35E"
-            style={{ marginRight: 6 }}
-          />
+          <Coins size={20} color="#F4D35E" style={{ marginRight: 6 }} />
           <Text style={styles.coinText}>{coins}</Text>
         </View>
       </View>
@@ -37,7 +32,7 @@ export default function GamesScreen({ navigation }: any) {
           style={styles.gameCard}
           onPress={() => navigation.navigate("MemoryGame")}
         >
-          <FontAwesome5 name="brain" size={48} color="#6DD19C" />
+          <Brain size={48} color="#6DD19C" />
           <Text style={styles.gameName}>Memory Game</Text>
           <Text style={styles.gameDesc}>Match pairs of symbols</Text>
         </Pressable>
@@ -46,7 +41,7 @@ export default function GamesScreen({ navigation }: any) {
           style={styles.gameCard}
           onPress={() => navigation.navigate("SequenceGame")}
         >
-          <FontAwesome5 name="stream" size={48} color="#6DD19C" />
+          <AudioLines size={48} color="#6DD19C" />
           <Text style={styles.gameName}>Sequence</Text>
           <Text style={styles.gameDesc}>Memorize the sequence</Text>
         </Pressable>
@@ -55,7 +50,7 @@ export default function GamesScreen({ navigation }: any) {
           style={styles.gameCard}
           onPress={() => navigation.navigate("SpaceGame")}
         >
-          <FontAwesome5 name="rocket" size={48} color="#6DD19C" />
+          <Rocket size={48} color="#6DD19C" />
           <Text style={styles.gameName}>Space Defense</Text>
           <Text style={styles.gameDesc}>Survive and destroy enemies</Text>
         </Pressable>
@@ -64,7 +59,7 @@ export default function GamesScreen({ navigation }: any) {
           style={styles.gameCard}
           onPress={() => navigation.navigate("TiltMaze")}
         >
-          <FontAwesome5 name="circle" size={48} color="#6DD19C" />
+          <Dice1 size={48} color="#6DD19C" />
           <Text style={styles.gameName}>Tilt Maze</Text>
           <Text style={styles.gameDesc}>Roll the orb through the maze</Text>
         </Pressable>

@@ -1,16 +1,15 @@
-import React from "react";
+import React, { ComponentType } from "react";
 import { View, Text } from "react-native";
-import { FontAwesome5 } from "@expo/vector-icons";
 import styles from "../App.styles";
 
 export type StatusCircleProps = {
-  iconName: React.ComponentProps<typeof FontAwesome5>["name"];
+  Icon: ComponentType<{ size?: number; color?: string; style?: any }>;
   label: string;
   value: number; // 0–1
 };
 
 export default function StatusCircle({
-  iconName,
+  Icon,
   label,
   value,
 }: StatusCircleProps) {
@@ -39,12 +38,7 @@ export default function StatusCircle({
         <View style={styles.iconCircle}>
           {/* Icon on top, with a little opacity so color shows through */}
           <View style={styles.iconContent}>
-            <FontAwesome5
-              name={iconName}
-              size={24}
-              color="#333"
-              style={{ opacity: 0.85 }}
-            />
+            <Icon size={24} color="#333" style={{ opacity: 0.85 }} />
           </View>
           {/* Color fill overlays the icon, color based on value */}
           <View style={styles.iconFillContainer} pointerEvents="none">

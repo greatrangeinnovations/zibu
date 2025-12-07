@@ -1,25 +1,33 @@
 import React from "react";
 import { View, Text, StyleSheet, SafeAreaView, ScrollView } from "react-native";
-import { FontAwesome5 } from "@expo/vector-icons";
+import {
+  Volleyball,
+  Eraser,
+  StickyNote,
+  Coins,
+  Milk,
+  Salad,
+  Soup,
+} from "lucide-react-native";
 import { useCoins, FOOD_TYPES } from "../contexts/CoinContext";
 
 const DURABLE_ITEMS = [
   {
     key: "deflated_ball",
     label: "Deflated Ball",
-    icon: "futbol",
+    Icon: Volleyball,
     description: "Toy - 25 uses",
   },
   {
     key: "old_sponge",
     label: "Old Sponge",
-    icon: "bath",
+    Icon: Eraser,
     description: "Cleaner - 25 uses",
   },
   {
     key: "tattered_blanket",
     label: "Tattered Blanket",
-    icon: "bed",
+    Icon: StickyNote,
     description: "Sleep item - 25 uses",
   },
 ];
@@ -32,12 +40,7 @@ export default function BackpackScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Backpack</Text>
         <View style={styles.coinRow}>
-          <FontAwesome5
-            name="coins"
-            size={20}
-            color="#F4D35E"
-            style={{ marginRight: 6 }}
-          />
+          <Coins size={20} color="#F4D35E" style={{ marginRight: 6 }} />
           <Text style={styles.coinText}>{coins.toLocaleString()}</Text>
         </View>
       </View>
@@ -50,65 +53,70 @@ export default function BackpackScreen() {
           <Text style={styles.totalAmount}>{getTotalFood()}</Text>
         </View>
 
-        {Object.entries(FOOD_TYPES).map(([key, food]) => (
-          <View key={key} style={styles.itemCard}>
-            <FontAwesome5
-              name={food.icon as any}
-              size={32}
-              color="#6DD19C"
-              style={{ marginBottom: 12 }}
-            />
-            <Text style={styles.itemLabel}>{food.label}</Text>
-            <Text style={styles.itemAmount}>
-              {inventory[key as keyof typeof inventory]}
-            </Text>
-            <Text style={styles.itemDescription}>
-              {food.hungerRestore}% hunger restore
-            </Text>
-            <Text style={styles.itemPrice}>{food.price} coins</Text>
-          </View>
-        ))}
+        {Object.entries(FOOD_TYPES).map(([key, food]) => {
+          let FoodIcon = null;
+          if (key === "star_milk") FoodIcon = Milk;
+          else if (key === "cosmic_fruit") FoodIcon = Salad;
+          else if (key === "galaxy_noodle") FoodIcon = Soup;
+          return (
+            <View key={key} style={styles.itemCard}>
+              {FoodIcon && (
+                <FoodIcon
+                  size={28}
+                  color="#6DD19C"
+                  style={{ marginBottom: 8 }}
+                />
+              )}
+              <Text style={styles.itemLabel}>{food.label}</Text>
+              <Text style={styles.itemAmount}>
+                {inventory[key as keyof typeof inventory]}
+              </Text>
+              <Text style={styles.itemDescription}>
+                {food.hungerRestore}% hunger restore
+              </Text>
+              <Text style={styles.itemPrice}>{food.price} coins</Text>
+            </View>
+          );
+        })}
 
         {/* Durable Items Section */}
         <Text style={styles.sectionTitle}>Items</Text>
-        {DURABLE_ITEMS.map((item) => (
-          <View key={item.key} style={styles.itemCard}>
-            <FontAwesome5
-              name={item.icon as any}
-              size={32}
-              color="#FF9999"
-              style={{ marginBottom: 12 }}
-            />
-            <Text style={styles.itemLabel}>{item.label}</Text>
-            <Text style={styles.itemAmount}>
-              {inventory[item.key as keyof typeof inventory]}
-            </Text>
-            <Text style={styles.itemDescription}>{item.description}</Text>
-            {inventory[item.key as keyof typeof inventory] > 0 && (
-              <View style={styles.durabilityBar}>
-                <View
-                  style={[
-                    styles.durabilityFill,
-                    {
-                      width: `${
-                        (durability[item.key as keyof typeof durability] || 0) *
-                        100
-                      }%`,
-                    },
-                  ]}
-                />
-              </View>
-            )}
-            {inventory[item.key as keyof typeof inventory] > 0 && (
-              <Text style={styles.durabilityText}>
-                {Math.round(
-                  (durability[item.key as keyof typeof durability] || 0) * 100
-                )}
-                % durable
+        {DURABLE_ITEMS.map((item) => {
+          const Icon = item.Icon;
+          return (
+            <View key={item.key} style={styles.itemCard}>
+              <Icon size={32} color="#FF9999" style={{ marginBottom: 12 }} />
+              <Text style={styles.itemLabel}>{item.label}</Text>
+              <Text style={styles.itemAmount}>
+                {inventory[item.key as keyof typeof inventory]}
               </Text>
-            )}
-          </View>
-        ))}
+              <Text style={styles.itemDescription}>{item.description}</Text>
+              {inventory[item.key as keyof typeof inventory] > 0 && (
+                <View style={styles.durabilityBar}>
+                  <View
+                    style={[
+                      styles.durabilityFill,
+                      {
+                        width: `${
+                          (durability[item.key as keyof typeof durability] ||
+                            0) * 100
+                        }%`,
+                      },
+                    ]}
+                  />
+                </View>
+              )}
+              {inventory[item.key as keyof typeof inventory] > 0 && (
+                <Text style={styles.durabilityText}>
+                  {Math.round(
+                    (durability[item.key as keyof typeof durability] || 0) * 100
+                  )}
+                  % durable
+                </Text>
+              )}
+            </View>
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );

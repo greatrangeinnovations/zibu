@@ -4,34 +4,41 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   Pressable,
   Alert,
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FontAwesome5 } from "@expo/vector-icons";
+import {
+  Volleyball,
+  Eraser,
+  StickyNote,
+  Coins,
+  Milk,
+  Salad,
+  Soup,
+} from "lucide-react-native";
 
 const DURABLE_ITEMS = [
   {
     key: "deflated_ball",
     label: "Deflated Ball",
     price: 5,
-    icon: "futbol",
+    Icon: Volleyball,
     description: "25 uses",
   },
   {
     key: "old_sponge",
     label: "Old Sponge",
     price: 5,
-    icon: "bath",
+    Icon: Eraser,
     description: "25 uses",
   },
   {
     key: "tattered_blanket",
     label: "Tattered Blanket",
     price: 5,
-    icon: "bed",
+    Icon: StickyNote,
     description: "25 uses",
   },
 ];
@@ -96,83 +103,85 @@ export default function ShopScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Shop</Text>
         <View style={styles.coinRow}>
-          <FontAwesome5
-            name="coins"
-            size={20}
-            color="#F4D35E"
-            style={{ marginRight: 6 }}
-          />
+          <Coins size={20} color="#F4D35E" style={{ marginRight: 6 }} />
           <Text style={styles.coinText}>{coins.toLocaleString()}</Text>
         </View>
       </View>
       <ScrollView contentContainerStyle={styles.list}>
         {/* Starter items section */}
         <Text style={styles.sectionTitle}>Starter Items</Text>
-        {DURABLE_ITEMS.map((item) => (
-          <View key={item.key} style={styles.foodCard}>
-            <View style={styles.foodHeader}>
-              <FontAwesome5
-                name={item.icon as any}
-                size={28}
-                color="#FF9999"
-                style={{ marginRight: 16 }}
-              />
-              <View style={styles.foodInfo}>
-                <Text style={styles.itemLabel}>{item.label}</Text>
-                <Text style={styles.itemSubtitle}>{item.description}</Text>
+        {DURABLE_ITEMS.map((item) => {
+          const Icon = item.Icon;
+          return (
+            <View key={item.key} style={styles.foodCard}>
+              <View style={styles.foodHeader}>
+                <Icon size={28} color="#FF9999" style={{ marginRight: 16 }} />
+                <View style={styles.foodInfo}>
+                  <Text style={styles.itemLabel}>{item.label}</Text>
+                  <Text style={styles.itemSubtitle}>{item.description}</Text>
+                </View>
+              </View>
+
+              <View style={styles.priceContainer}>
+                <Text style={styles.itemPrice}>{item.price} coins</Text>
+                <Pressable
+                  style={[
+                    styles.buyButton,
+                    coins < item.price && styles.buyButtonDisabled,
+                  ]}
+                  onPress={() =>
+                    handleDurableItemPurchase(item.key as any, item)
+                  }
+                  disabled={coins < item.price}
+                >
+                  <Text style={styles.buyButtonText}>Buy</Text>
+                </Pressable>
               </View>
             </View>
-
-            <View style={styles.priceContainer}>
-              <Text style={styles.itemPrice}>{item.price} coins</Text>
-              <Pressable
-                style={[
-                  styles.buyButton,
-                  coins < item.price && styles.buyButtonDisabled,
-                ]}
-                onPress={() => handleDurableItemPurchase(item.key as any, item)}
-                disabled={coins < item.price}
-              >
-                <Text style={styles.buyButtonText}>Buy</Text>
-              </Pressable>
-            </View>
-          </View>
-        ))}
+          );
+        })}
 
         {/* Food items section */}
         <Text style={styles.sectionTitle}>Food</Text>
-        {Object.entries(FOOD_TYPES).map(([foodId, food]) => (
-          <View key={foodId} style={styles.foodCard}>
-            <View style={styles.foodHeader}>
-              <FontAwesome5
-                name={food.icon as any}
-                size={28}
-                color="#6DD19C"
-                style={{ marginRight: 16 }}
-              />
-              <View style={styles.foodInfo}>
-                <Text style={styles.itemLabel}>{food.label}</Text>
-                <Text style={styles.itemSubtitle}>
-                  +{food.hungerRestore}% hunger
-                </Text>
+        {Object.entries(FOOD_TYPES).map(([foodId, food]) => {
+          let FoodIcon = null;
+          if (foodId === "star_milk") FoodIcon = Milk;
+          else if (foodId === "cosmic_fruit") FoodIcon = Salad;
+          else if (foodId === "galaxy_noodle") FoodIcon = Soup;
+          return (
+            <View key={foodId} style={styles.foodCard}>
+              <View style={styles.foodHeader}>
+                {FoodIcon && (
+                  <FoodIcon
+                    size={28}
+                    color="#6DD19C"
+                    style={{ marginRight: 16 }}
+                  />
+                )}
+                <View style={styles.foodInfo}>
+                  <Text style={styles.itemLabel}>{food.label}</Text>
+                  <Text style={styles.itemSubtitle}>
+                    +{food.hungerRestore}% hunger
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.priceContainer}>
+                <Text style={styles.itemPrice}>{food.price} coins</Text>
+                <Pressable
+                  style={[
+                    styles.buyButton,
+                    coins < food.price && styles.buyButtonDisabled,
+                  ]}
+                  onPress={() => handleFoodPurchase(foodId as any, food)}
+                  disabled={coins < food.price}
+                >
+                  <Text style={styles.buyButtonText}>Buy</Text>
+                </Pressable>
               </View>
             </View>
-
-            <View style={styles.priceContainer}>
-              <Text style={styles.itemPrice}>{food.price} coins</Text>
-              <Pressable
-                style={[
-                  styles.buyButton,
-                  coins < food.price && styles.buyButtonDisabled,
-                ]}
-                onPress={() => handleFoodPurchase(foodId as any, food)}
-                disabled={coins < food.price}
-              >
-                <Text style={styles.buyButtonText}>Buy</Text>
-              </Pressable>
-            </View>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );

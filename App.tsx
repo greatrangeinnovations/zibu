@@ -12,7 +12,22 @@ import {
 } from "react-native";
 import { AppState, AppStateStatus } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FontAwesome5 } from "@expo/vector-icons";
+import {
+  Coins,
+  Rocket,
+  Settings,
+  Skull,
+  Smile,
+  Utensils,
+  Bath,
+  Bed,
+  Milk,
+  Salad,
+  Soup,
+  Volleyball,
+  Eraser,
+  StickyNote,
+} from "lucide-react-native";
 import { Accelerometer } from "expo-sensors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -883,12 +898,7 @@ export default function HomeScreen() {
         >
           {isPermanentLoss ? (
             <>
-              <FontAwesome5
-                name="skull"
-                size={80}
-                color="#FF3333"
-                style={{ marginBottom: 20 }}
-              />
+              <Skull size={80} color="#FF3333" style={{ marginBottom: 20 }} />
               <Text
                 style={{
                   fontSize: 32,
@@ -931,12 +941,7 @@ export default function HomeScreen() {
             </>
           ) : (
             <>
-              <FontAwesome5
-                name="space-shuttle"
-                size={80}
-                color="#FF6B6B"
-                style={{ marginBottom: 20 }}
-              />
+              <Rocket size={80} color="#FF6B6B" style={{ marginBottom: 20 }} />
               <Text
                 style={{
                   fontSize: 32,
@@ -1155,12 +1160,7 @@ export default function HomeScreen() {
         <View style={styles.topBar}>
           <View>
             <View style={styles.coinLabel}>
-              <FontAwesome5
-                name="coins"
-                size={20}
-                color="#F4D35E"
-                style={{ marginRight: 6 }}
-              />
+              <Coins size={20} color="#F4D35E" style={{ marginRight: 6 }} />
               <Text style={styles.coinText}>{coins.toLocaleString()}</Text>
             </View>
             <Text
@@ -1178,27 +1178,7 @@ export default function HomeScreen() {
             style={styles.gearButton}
             onPress={() => setCoinModalOpen(true)}
           >
-            <FontAwesome5 name="cog" size={22} color="#888" />
-          </Pressable>
-          {/* TEMPORARY: Reset Egg button for testing */}
-          <Pressable
-            style={{
-              marginLeft: 16,
-              backgroundColor: "#E94F37",
-              paddingHorizontal: 16,
-              paddingVertical: 6,
-              borderRadius: 8,
-            }}
-            onPress={async () => {
-              await AsyncStorage.removeItem(HATCH_STORAGE_KEY);
-              await AsyncStorage.removeItem("zibu_meteor_intro_seen_v1");
-              setIsHatched(false);
-              setHatchShakeCount(0);
-            }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
-              Reset Egg
-            </Text>
+            <Settings size={22} color="#888" />
           </Pressable>
         </View>
         <Modal
@@ -1233,7 +1213,7 @@ export default function HomeScreen() {
             {
               key: "tattered_blanket",
               label: "Tattered Blanket",
-              icon: "dot-circle",
+              Icon: StickyNote,
             },
           ]}
           selectedKey={selectedSleepItem}
@@ -1256,11 +1236,17 @@ export default function HomeScreen() {
           title="Select Food"
           items={Object.entries(FOOD_TYPES)
             .filter(([key, _]) => inventory[key as keyof typeof inventory] > 0)
-            .map(([key, food]) => ({
-              key,
-              label: food.label,
-              icon: food.icon as any,
-            }))}
+            .map(([key, food]) => {
+              let Icon = Milk;
+              if (key === "star_milk") Icon = Milk;
+              else if (key === "cosmic_fruit") Icon = Salad;
+              else if (key === "galaxy_noodle") Icon = Soup;
+              return {
+                key,
+                label: food.label,
+                Icon,
+              };
+            })}
           selectedKey={selectedFood}
           onSelect={(key) => {
             setActiveMode("feed");
@@ -1279,9 +1265,7 @@ export default function HomeScreen() {
         <SwatchModal
           visible={cleanSwatchOpen}
           title="Select Cleaner"
-          items={[
-            { key: "old_sponge", label: "Old Sponge", icon: "dot-circle" },
-          ]}
+          items={[{ key: "old_sponge", label: "Old Sponge", Icon: Eraser }]}
           selectedKey={selectedCleanTool}
           onSelect={(key) => {
             setActiveMode("clean");
@@ -1301,7 +1285,7 @@ export default function HomeScreen() {
           visible={toySwatchOpen}
           title="Select Toy"
           items={[
-            { key: "deflated_ball", label: "Deflated Ball", icon: "futbol" },
+            { key: "deflated_ball", label: "Deflated Ball", Icon: Volleyball },
           ]}
           selectedKey={selectedToy}
           onSelect={(key) => {
@@ -1345,7 +1329,7 @@ export default function HomeScreen() {
             activeMode === "play" && styles.selectedActionButton,
           ]}
         >
-          <StatusCircle iconName="smile" label="Happy" value={needs.mood} />
+          <StatusCircle Icon={Smile} label="Happy" value={needs.mood} />
         </Pressable>
         <Pressable
           onPress={() => {
@@ -1370,7 +1354,7 @@ export default function HomeScreen() {
             activeMode === "feed" && styles.selectedActionButton,
           ]}
         >
-          <StatusCircle iconName="utensils" label="Full" value={needs.hunger} />
+          <StatusCircle Icon={Utensils} label="Full" value={needs.hunger} />
         </Pressable>
         <Pressable
           onPress={() => {
@@ -1395,7 +1379,7 @@ export default function HomeScreen() {
             activeMode === "clean" && styles.selectedActionButton,
           ]}
         >
-          <StatusCircle iconName="bath" label="Clean" value={needs.clean} />
+          <StatusCircle Icon={Bath} label="Clean" value={needs.clean} />
         </Pressable>
         <Pressable
           onPress={() => {
@@ -1420,7 +1404,7 @@ export default function HomeScreen() {
             activeMode === "sleep" && styles.selectedActionButton,
           ]}
         >
-          <StatusCircle iconName="bed" label="Rested" value={needs.rest} />
+          <StatusCircle Icon={Bed} label="Rested" value={needs.rest} />
         </Pressable>
       </View>
     </SafeAreaView>

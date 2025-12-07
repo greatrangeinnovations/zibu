@@ -8,7 +8,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
-import { FontAwesome5 } from "@expo/vector-icons";
+import {
+  Home,
+  ShoppingBag,
+  History,
+  Backpack,
+  Gamepad2,
+} from "lucide-react-native";
 import HomeScreen from "./HomeScreen";
 import { CoinProvider } from "./contexts/CoinContext";
 import ShopScreen from "./screens/ShopScreen";
@@ -45,12 +51,17 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ color, size }) => {
-          let iconName: any;
-          if (route.name === "Home") iconName = "home";
-          else if (route.name === "Shop") iconName = "shopping-bag";
-          else if (route.name === "History") iconName = "history";
-          else if (route.name === "Backpack") iconName = "backpack";
-          return <FontAwesome5 name={iconName} size={size} color={color} />;
+          // size + color are passed by React Navigation
+          if (route.name === "Home") {
+            return <Home color={color} size={size} />;
+          } else if (route.name === "Shop") {
+            return <ShoppingBag color={color} size={size} />;
+          } else if (route.name === "History") {
+            return <History color={color} size={size} />;
+          } else if (route.name === "Backpack") {
+            return <Backpack color={color} size={size} />;
+          }
+          return null;
         },
         tabBarActiveTintColor: "#6DD19C",
         tabBarInactiveTintColor: "#999",
@@ -70,7 +81,7 @@ function MainTabs() {
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
-            <FontAwesome5 name="gamepad" size={size} color={color} />
+            <Gamepad2 color={color} size={size} />
           ),
           tabBarLabel: "Games",
         }}
@@ -80,7 +91,7 @@ function MainTabs() {
         component={BackpackScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <FontAwesome5 name="backpack" size={size} color={color} />
+            <Backpack color={color} size={size} />
           ),
           tabBarLabel: "Backpack",
         }}

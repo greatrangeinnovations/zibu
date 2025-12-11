@@ -105,6 +105,12 @@ export default function ShopScreen() {
         <View style={styles.coinRow}>
           <Coins size={20} color="#F4D35E" style={{ marginRight: 6 }} />
           <Text style={styles.coinText}>{coins.toLocaleString()}</Text>
+          <Pressable
+            style={styles.addCoinsButton}
+            onPress={() => subtractCoins(-5)}
+          >
+            <Text style={styles.addCoinsText}>+5</Text>
+          </Pressable>
         </View>
       </View>
       <ScrollView contentContainerStyle={styles.list}>
@@ -188,6 +194,20 @@ export default function ShopScreen() {
 }
 
 const styles = StyleSheet.create({
+  addCoinsButton: {
+    marginLeft: 8,
+    backgroundColor: "#6DD19C",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addCoinsText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
   container: {
     flex: 1,
     backgroundColor: "#F6F6F6",

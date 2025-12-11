@@ -210,9 +210,9 @@ export default function HomeScreen() {
   useEffect(() => {
     if (!needs) return;
 
-    // Don't trigger APS if we just rescued Zibu (within last 5 seconds)
+    // Don't trigger APS if we just rescued Zibu (within last 10 seconds)
     if (justRescued) return;
-    if (Date.now() - lastAPSExitTimeRef.current < 5000) return;
+    if (Date.now() - lastAPSExitTimeRef.current < 10000) return;
 
     const allNeeds = Object.values(needs);
     const allAtZero = allNeeds.every((value) => value <= 0);
@@ -841,8 +841,8 @@ export default function HomeScreen() {
         setIsTakenByAPS(false);
         lastAPSExitTimeRef.current = Date.now();
 
-        // Re-enable APS monitoring after 5 seconds
-        setTimeout(() => setJustRescued(false), 5000);
+        // Re-enable APS monitoring after 10 seconds to give plenty of time for needs to stabilize
+        setTimeout(() => setJustRescued(false), 10000);
       } else {
         Alert.alert(
           "Not Enough Coins",

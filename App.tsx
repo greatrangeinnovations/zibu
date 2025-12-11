@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useContext } from "react";
 import { Image } from "expo-image";
 import {
   View,
@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { AppState, AppStateStatus } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import {
   Coins,
   Rocket,
@@ -36,6 +37,7 @@ import StatusCircle from "./components/StatusCircle";
 import SwatchModal from "./components/SwatchModal";
 import ZibuSprite from "./components/ZibuSprite";
 import { useCoins, FOOD_TYPES } from "./contexts/CoinContext";
+import { OnboardingContext } from "./RootNavigator";
 import {
   FRAME_COUNT,
   COLS,
@@ -82,6 +84,8 @@ const APS_INFRACTIONS_KEY = "zibu_aps_infractions_v1"; // Number of APS infracti
 const APS_COSTS = [10, 20, 50]; // Cost to rescue at each infraction (1st, 2nd, 3rd)
 
 export default function HomeScreen() {
+  const navigation = useNavigation<any>();
+  const onboardingContext = useContext(OnboardingContext);
   const {
     coins,
     inventory,
@@ -105,6 +109,7 @@ export default function HomeScreen() {
 
   // APS (Alien Protective Services) state
   const [isTakenByAPS, setIsTakenByAPS] = useState(false);
+  const [justRescued, setJustRescued] = useState(false); // Prevent immediate re-capture after rescue
 
   // Track which action is currently active
   const [activeMode, setActiveMode] = useState<ActiveMode>(null);
@@ -171,6 +176,7 @@ export default function HomeScreen() {
   const useDurableItemRef = useRef(useDurableItem);
   const inventoryRef = useRef(inventory);
   const durabilityRef = useRef(durability);
+  const lastAPSExitTimeRef = useRef<number>(0); // Timestamp when APS screen was exited
 
   const panResponder = useRef(
     PanResponder.create({
@@ -204,13 +210,17 @@ export default function HomeScreen() {
   useEffect(() => {
     if (!needs) return;
 
+    // Don't trigger APS if we just rescued Zibu (within last 5 seconds)
+    if (justRescued) return;
+    if (Date.now() - lastAPSExitTimeRef.current < 5000) return;
+
     const allNeeds = Object.values(needs);
     const allAtZero = allNeeds.every((value) => value <= 0);
 
     if (allAtZero && !isTakenByAPS) {
       setIsTakenByAPS(true);
     }
-  }, [needs, isTakenByAPS]);
+  }, [needs, isTakenByAPS, justRescued]);
 
   // Initialize: load needs and hatching state from storage
   useEffect(() => {
@@ -259,7 +269,7 @@ export default function HomeScreen() {
       }
     };
     initialize();
-  }, []);
+  }, [onboardingContext?.resetCounter]);
 
   // Update age periodically
   useEffect(() => {
@@ -789,50 +799,6 @@ export default function HomeScreen() {
     );
   }
 
-  if (!isHatched) {
-    // Hatching screen
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: "#F6F6F6" }]}>
-        <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
-          <Image
-            source={require("./assets/egg/egg.png")}
-            style={{ width: 220, height: 220, marginBottom: 32 }}
-            contentFit="contain"
-          />
-          <Text style={{ fontSize: 28, fontWeight: "700", marginBottom: 12 }}>
-            Shake to Hatch!
-          </Text>
-          <View
-            style={{
-              width: 180,
-              height: 18,
-              backgroundColor: "#eee",
-              borderRadius: 9,
-              overflow: "hidden",
-              marginBottom: 16,
-            }}
-          >
-            <View
-              style={{
-                width: `${Math.min(
-                  100,
-                  (hatchShakeCount / HATCH_SHAKE_TARGET) * 100
-                )}%`,
-                height: "100%",
-                backgroundColor: "#6DD19C",
-              }}
-            />
-          </View>
-          <Text style={{ fontSize: 16, color: "#888" }}>
-            {hatchShakeCount} / {HATCH_SHAKE_TARGET} shakes
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   if (isTakenByAPS) {
     // APS taken Zibu screen - with escalating costs and permanent loss on 3rd infraction
     const currentInfraction = apsInfractions + 1; // Next infraction number
@@ -846,6 +812,21 @@ export default function HomeScreen() {
       if (coins >= rescueCost) {
         subtractCoins(rescueCost);
 
+        // Reset needs to 50%
+        const rescuedNeeds = {
+          mood: 0.5,
+          hunger: 0.5,
+          clean: 0.5,
+          rest: 0.5,
+        };
+
+        // SAVE TO STORAGE FIRST to ensure it's persisted before state updates
+        const data: StoredNeeds = {
+          needs: rescuedNeeds,
+          lastUpdated: Date.now(),
+        };
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
         // Increment infractions
         const newInfraction = apsInfractions + 1;
         setApsInfractions(newInfraction);
@@ -854,14 +835,14 @@ export default function HomeScreen() {
           newInfraction.toString()
         );
 
+        // NOW update state
+        setNeeds(rescuedNeeds);
+        setJustRescued(true);
         setIsTakenByAPS(false);
-        // Reset needs to default values
-        setNeeds({
-          mood: 0.5,
-          hunger: 0.5,
-          clean: 0.5,
-          rest: 0.5,
-        });
+        lastAPSExitTimeRef.current = Date.now();
+
+        // Re-enable APS monitoring after 5 seconds
+        setTimeout(() => setJustRescued(false), 5000);
       } else {
         Alert.alert(
           "Not Enough Coins",
@@ -876,14 +857,23 @@ export default function HomeScreen() {
       await AsyncStorage.removeItem(AGE_STORAGE_KEY);
       await AsyncStorage.removeItem(APS_INFRACTIONS_KEY);
       await AsyncStorage.removeItem(STORAGE_KEY);
+      // Also clear the meteor intro so user sees intro screen again
+      await AsyncStorage.removeItem("zibu_meteor_intro_seen_v1");
 
-      setIsHatched(false);
+      // Reset local state
+      setIsHatched(null);
       setHatchShakeCount(0);
       setHatchTime(null);
       setAge(0);
       setApsInfractions(0);
       setIsTakenByAPS(false);
       setNeeds(null);
+      setIsInitialized(false);
+
+      // Use the onboarding context to reset to intro screen
+      if (onboardingContext?.resetOnboarding) {
+        await onboardingContext.resetOnboarding();
+      }
     };
 
     return (
@@ -1197,9 +1187,34 @@ export default function HomeScreen() {
               >
                 Settings
               </Text>
-              <Text style={{ color: "#888", fontSize: 14 }}>
+              <Text style={{ color: "#888", fontSize: 14, marginBottom: 16 }}>
                 Coming soon...
               </Text>
+              <Pressable
+                style={{
+                  backgroundColor: "#FFB6C1",
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 6,
+                }}
+                onPress={async () => {
+                  setNeeds({ mood: 0, hunger: 0, clean: 0, rest: 0 });
+                  await AsyncStorage.setItem(
+                    "needs",
+                    JSON.stringify({ mood: 0, hunger: 0, clean: 0, rest: 0 })
+                  );
+                  await AsyncStorage.setItem(
+                    "lastUpdated",
+                    JSON.stringify(Date.now())
+                  );
+                }}
+              >
+                <Text
+                  style={{ color: "#333", fontWeight: "700", fontSize: 12 }}
+                >
+                  Dev: Set All Needs to 0
+                </Text>
+              </Pressable>
             </View>
           </Pressable>
         </Modal>

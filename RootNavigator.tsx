@@ -26,6 +26,11 @@ import TiltMazeGameScreen from "./screens/TiltMazeGameScreen";
 import BackpackScreen from "./screens/BackpackScreen";
 import MeteorIntroScreen from "./screens/MeteorIntroScreen";
 
+export const OnboardingContext = React.createContext<{
+  resetOnboarding: () => Promise<void>;
+  resetCounter: number;
+} | null>(null);
+
 const Tab = createBottomTabNavigator();
 const GamesStack = createNativeStackNavigator();
 
@@ -107,6 +112,7 @@ export default function RootNavigator() {
   const [step, setStep] = useState<"intro" | "egg" | "main">("intro");
   const [hatchShakeCount, setHatchShakeCount] = useState(0);
   const [eggAnimStage, setEggAnimStage] = useState<0 | 1 | 2>(0); // 0: still, 1: basic, 2: intense
+  const [resetCounter, setResetCounter] = useState(0); // Increment when reset happens
   const shakeThreshold = 1.2;
   const requiredShakes = 60;
   const lastShakeRef = useRef(Date.now());
@@ -140,6 +146,7 @@ export default function RootNavigator() {
     await AsyncStorage.removeItem(METEOR_INTRO_STORAGE_KEY);
     setHatchShakeCount(0);
     setStep("intro");
+    setResetCounter((prev) => prev + 1); // Signal reset to HomeScreen
   };
 
   // Only run shake effect when on egg screen
@@ -295,20 +302,34 @@ export default function RootNavigator() {
           <Text style={{ fontSize: 16, color: "#888" }}>
             {hatchShakeCount} / {requiredShakes} shakes
           </Text>
-          <Pressable
-            style={{
-              marginTop: 32,
-              backgroundColor: "#E94F37",
-              paddingHorizontal: 16,
-              paddingVertical: 6,
-              borderRadius: 8,
-            }}
-            onPress={resetOnboarding}
-          >
-            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
-              Reset Egg
-            </Text>
-          </Pressable>
+          <View style={{ flexDirection: "row", gap: 12, marginTop: 32 }}>
+            <Pressable
+              style={{
+                backgroundColor: "#E94F37",
+                paddingHorizontal: 16,
+                paddingVertical: 6,
+                borderRadius: 8,
+              }}
+              onPress={resetOnboarding}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
+                Reset Egg
+              </Text>
+            </Pressable>
+            <Pressable
+              style={{
+                backgroundColor: "#F4D35E",
+                paddingHorizontal: 16,
+                paddingVertical: 6,
+                borderRadius: 8,
+              }}
+              onPress={() => setHatchShakeCount(60)}
+            >
+              <Text style={{ color: "#333", fontWeight: "700", fontSize: 14 }}>
+                Dev: Set to 60
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -317,9 +338,11 @@ export default function RootNavigator() {
   // Main app with navigation
   return (
     <CoinProvider>
-      <NavigationContainer>
-        <MainTabs />
-      </NavigationContainer>
+      <OnboardingContext.Provider value={{ resetOnboarding, resetCounter }}>
+        <NavigationContainer>
+          <MainTabs />
+        </NavigationContainer>
+      </OnboardingContext.Provider>
     </CoinProvider>
   );
 }

@@ -86,7 +86,6 @@ const APS_COSTS = [10, 20, 50]; // Cost to rescue at each infraction (1st, 2nd, 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const onboardingContext = useContext(OnboardingContext);
-  const resetCounter = onboardingContext?.resetCounter ?? 0;
   const {
     coins,
     inventory,
@@ -270,7 +269,7 @@ export default function HomeScreen() {
       }
     };
     initialize();
-  }, [resetCounter]);
+  }, [onboardingContext?.resetCounter]);
 
   // Update age periodically
   useEffect(() => {
@@ -328,19 +327,10 @@ export default function HomeScreen() {
     return () => sub.remove();
   }, [needs]);
 
-  // Debounced save to avoid excessive AsyncStorage writes
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   useEffect(() => {
     if (needs === null) return;
 
-    // Clear existing timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    // Debounce saving - only save if needs haven't changed for 1 second
-    saveTimeoutRef.current = setTimeout(async () => {
+    const saveState = async () => {
       const data: StoredNeeds = {
         needs,
         lastUpdated: Date.now(),
@@ -350,13 +340,9 @@ export default function HomeScreen() {
       } catch (e) {
         console.warn("Failed to save needs", e);
       }
-    }, 1000);
-
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
     };
+
+    saveState();
   }, [needs]);
 
   // Sleep animation effect

@@ -1,8 +1,8 @@
 // Animation constants for Zibu
 
-export const FRAME_COUNT = 8;
-export const COLS = 3; // 3 columns
-export const ROWS = 3; // 3 rows
+export const FRAME_COUNT = 5;
+export const COLS = 5; // 3 columns
+export const ROWS = 1; // 1 rows
 export const DISPLAY_SIZE = 300; // Display at 300x300
 export const FPS = 20; // Frame rate
 

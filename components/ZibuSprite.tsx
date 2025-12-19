@@ -105,7 +105,7 @@ export default function ZibuSprite({
   } else {
     return (
       <ExpoImage
-        source={require("../assets/blinking/blinking_spritesheet.png")}
+        source={require("../assets/blinking/blink_spritesheet.png")}
         style={{
           width: DISPLAY_SIZE * COLS,
           height: DISPLAY_SIZE * ROWS,

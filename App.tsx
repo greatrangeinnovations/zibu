@@ -722,7 +722,7 @@ export default function HomeScreen() {
 
       {/* Background with Zibu and interactions */}
       <ImageBackground
-        source={require("./assets/bedroom.png")}
+        source={require("./assets/bathroom.png")}
         style={{ flex: 1 }}
         resizeMode="cover"
       >

@@ -35,11 +35,11 @@ export function useZibuNeeds(onboardingResetCounter?: number) {
             setNeeds(saved.needs);
           }
         } else {
-          setNeeds({ mood: 0.5, hunger: 0.5, clean: 0.5, rest: 0.5 });
+          setNeeds({ mood: 0.25, hunger: 0.25, clean: 0.25, rest: 0.25 });
         }
       } catch (e) {
         console.warn("Failed to initialize needs", e);
-        setNeeds({ mood: 0.5, hunger: 0.5, clean: 0.5, rest: 0.5 });
+        setNeeds({ mood: 0.25, hunger: 0.25, clean: 0.25, rest: 0.25 });
       } finally {
         setIsInitialized(true);
       }

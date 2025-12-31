@@ -150,6 +150,11 @@ export default function HomeScreen() {
     y: number;
   } | null>(null);
 
+  // Surface area cleaning tracking
+  const lastSwipePositionRef = useRef<{ x: number; y: number } | null>(null);
+  const accumulatedDistanceRef = useRef(0);
+  const SURFACE_AREA_THRESHOLD = 1000; // Distance needed to trigger 1% clean increase
+
   // Animation frames - using custom hooks
   const frame = useBlinkAnimation(); // Complex blink pattern: single, wait, double, wait, repeat
 
@@ -227,34 +232,52 @@ export default function HomeScreen() {
       onStartShouldSetPanResponder: () => isCleaningRef.current,
       onMoveShouldSetPanResponder: () => isCleaningRef.current,
       onPanResponderMove: (evt, gestureState) => {
-        // Update swipe position to show sponge following the swipe
+        // Update sponge visual position
         if (isCleaningRef.current) {
-          setSwipePosition({
+          const currentPos = {
             x: gestureState.moveX,
             y: gestureState.moveY,
-          });
+          };
+          setSwipePosition(currentPos);
+
+          // Calculate distance traveled for surface area coverage
+          if (
+            lastSwipePositionRef.current &&
+            inventoryRef.current.old_sponge > 0
+          ) {
+            const dx = currentPos.x - lastSwipePositionRef.current.x;
+            const dy = currentPos.y - lastSwipePositionRef.current.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            accumulatedDistanceRef.current += distance;
+
+            // Every SURFACE_AREA_THRESHOLD pixels covered, increase clean by 1%
+            if (accumulatedDistanceRef.current >= SURFACE_AREA_THRESHOLD) {
+              const cleanIncreases = Math.floor(
+                accumulatedDistanceRef.current / SURFACE_AREA_THRESHOLD
+              );
+              accumulatedDistanceRef.current %= SURFACE_AREA_THRESHOLD;
+
+              // Use sponge durability proportional to cleaning
+              useDurableItemRef.current("old_sponge", 0.01 * cleanIncreases);
+
+              setNeeds((prev) => {
+                if (!prev) return null;
+                return {
+                  ...prev,
+                  clean: Math.min(1, prev.clean + 0.01 * cleanIncreases),
+                };
+              });
+            }
+          }
+
+          lastSwipePositionRef.current = currentPos;
         }
       },
       onPanResponderRelease: (evt, gestureState) => {
-        // Clear swipe position when gesture ends
+        // Clear swipe position and reset tracking when gesture ends
         setSwipePosition(null);
-
-        // Detect horizontal swipe (distance > 20px)
-        if (
-          Math.abs(gestureState.dx) > 20 &&
-          isCleaningRef.current &&
-          inventoryRef.current.old_sponge > 0
-        ) {
-          // Use 4% of the sponge's durability per swipe (25 swipes to destroy)
-          useDurableItemRef.current("old_sponge", 0.04);
-          setNeeds((prev) => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              clean: Math.min(1, prev.clean + 0.01),
-            };
-          });
-        }
+        lastSwipePositionRef.current = null;
+        accumulatedDistanceRef.current = 0;
       },
     })
   ).current;

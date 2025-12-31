@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState, useContext } from "react";
-import { Image } from "expo-image";
 import {
   View,
   Text,
@@ -10,7 +9,6 @@ import {
   PanResponder,
   Alert,
 } from "react-native";
-import { AppState, AppStateStatus } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import {
@@ -29,7 +27,6 @@ import {
   Eraser,
   StickyNote,
 } from "lucide-react-native";
-import { Accelerometer } from "expo-sensors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import styles from "./App.styles";
@@ -61,27 +58,19 @@ import {
   UPSET_ROWS,
   UPSET_FPS,
 } from "./constants/animation";
-import { applyDecay, getDecayPerMs } from "./utils/needs";
-
-type ActiveMode = "feed" | "clean" | "play" | "sleep" | null;
-
-const STORAGE_KEY = "zibu_needs_v1";
-
-type StoredNeeds = {
-  needs: Record<NeedKey, number>;
-  lastUpdated: number;
-};
-
+import {
+  useZibuNeeds,
+  useAnimationFrame,
+  useAccelerometer,
+  useAPSSystem,
+} from "./hooks";
 import type { NeedKey } from "./types";
 
-const DECAY_PER_TICK = 0.01; // how much to lose each tick (0.01 = 1%)
-const TICK_MS = 300000; // how often to decay, in ms
+type ActiveMode = "feed" | "clean" | "play" | "sleep" | null;
 
 const HATCH_SHAKE_TARGET = 20; // Number of shakes required to hatch
 const HATCH_STORAGE_KEY = "zibu_hatched_v1";
 const AGE_STORAGE_KEY = "zibu_age_v1"; // Timestamp when hatched
-const APS_INFRACTIONS_KEY = "zibu_aps_infractions_v1"; // Number of APS infractions
-const APS_COSTS = [10, 20, 50]; // Cost to rescue at each infraction (1st, 2nd, 3rd)
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
@@ -96,20 +85,22 @@ export default function HomeScreen() {
     useDurableItem,
   } = useCoins();
 
-  // Needs state
-  const [needs, setNeeds] = useState<Record<NeedKey, number> | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  // Needs state - managed by custom hook
+  const { needs, setNeeds, isInitialized } = useZibuNeeds(
+    onboardingContext?.resetCounter
+  );
 
-  // Hatching state
-  const [isHatched, setIsHatched] = useState<boolean | null>(null);
-  const [hatchShakeCount, setHatchShakeCount] = useState(0);
-  const [hatchTime, setHatchTime] = useState<number | null>(null); // Timestamp when hatched
-  const [age, setAge] = useState(0); // Days old
-  const [apsInfractions, setApsInfractions] = useState(0); // Number of times taken by APS
-
-  // APS (Alien Protective Services) state
-  const [isTakenByAPS, setIsTakenByAPS] = useState(false);
-  const [justRescued, setJustRescued] = useState(false); // Prevent immediate re-capture after rescue
+  // APS state - managed by custom hook
+  const {
+    isTakenByAPS,
+    setIsTakenByAPS,
+    apsInfractions,
+    isPermanentLoss,
+    currentCost,
+    recordRescue,
+    recordExit,
+    resetAPS,
+  } = useAPSSystem(needs);
 
   // Track which action is currently active
   const [activeMode, setActiveMode] = useState<ActiveMode>(null);
@@ -149,16 +140,41 @@ export default function HomeScreen() {
   const [isShaking, setIsShaking] = useState(false); // True while shaking
   const [isSleeping, setIsSleeping] = useState(false);
   const [isFeeding, setIsFeeding] = useState(false);
-
-  // Animation frames
-  const [frame, setFrame] = useState(0);
-  const [sleepFrame, setSleepFrame] = useState(0);
-  const [playFrame, setPlayFrame] = useState(0);
-  const [eatFrame, setEatFrame] = useState(0);
-  const [upsetFrame, setUpsetFrame] = useState(0);
-
-  // Upset state
   const [isUpset, setIsUpset] = useState(false);
+
+  // Animation frames - using custom hook
+  const frame = useAnimationFrame(true, {
+    fps: FPS,
+    frameCount: FRAME_COUNT,
+    loop: true,
+  });
+  const sleepFrame = useAnimationFrame(isSleeping, {
+    fps: SLEEP_FPS,
+    frameCount: SLEEP_FRAME_COUNT,
+    loop: false,
+  });
+  const playFrame = useAnimationFrame(isPlaying, {
+    fps: PLAYING_FPS,
+    frameCount: PLAYING_FRAME_COUNT,
+    loop: false,
+    onComplete: () => setIsPlaying(false),
+  });
+  const eatFrame = useAnimationFrame(isFeeding, {
+    fps: EAT_FPS,
+    frameCount: EAT_FRAME_COUNT,
+    loop: true,
+  });
+  const upsetFrame = useAnimationFrame(isUpset, {
+    fps: UPSET_FPS,
+    frameCount: UPSET_FRAME_COUNT,
+    loop: false,
+  });
+
+  // Hatching state
+  const [isHatched, setIsHatched] = useState<boolean | null>(null);
+  const [hatchShakeCount, setHatchShakeCount] = useState(0);
+  const [hatchTime, setHatchTime] = useState<number | null>(null);
+  const [age, setAge] = useState(0);
 
   // Coin modal
   const [coinModalOpen, setCoinModalOpen] = useState(false);
@@ -171,12 +187,9 @@ export default function HomeScreen() {
   const feedIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const foodUsedRef = useRef(0); // Track food used in current feeding session
   const hasPlayedUpsetRef = useRef(false);
-  const appState = useRef<AppStateStatus>(AppState.currentState);
-  const decayIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const useDurableItemRef = useRef(useDurableItem);
   const inventoryRef = useRef(inventory);
   const durabilityRef = useRef(durability);
-  const lastAPSExitTimeRef = useRef<number>(0); // Timestamp when APS screen was exited
 
   const panResponder = useRef(
     PanResponder.create({
@@ -206,23 +219,7 @@ export default function HomeScreen() {
   // Refs for feeding
   const selectedFoodHungerIncreaseRef = useRef(0);
 
-  // Monitor needs to detect if all are at 0
-  useEffect(() => {
-    if (!needs) return;
-
-    // Don't trigger APS if we just rescued Zibu (within last 10 seconds)
-    if (justRescued) return;
-    if (Date.now() - lastAPSExitTimeRef.current < 10000) return;
-
-    const allNeeds = Object.values(needs);
-    const allAtZero = allNeeds.every((value) => value <= 0);
-
-    if (allAtZero && !isTakenByAPS) {
-      setIsTakenByAPS(true);
-    }
-  }, [needs, isTakenByAPS, justRescued]);
-
-  // Initialize: load needs and hatching state from storage
+  // Initialize: load hatching state from storage
   useEffect(() => {
     const initialize = async () => {
       try {
@@ -230,7 +227,7 @@ export default function HomeScreen() {
         const hatchedRaw = await AsyncStorage.getItem(HATCH_STORAGE_KEY);
         setIsHatched(hatchedRaw === "true");
 
-        // Load age and infractions
+        // Load age
         const ageRaw = await AsyncStorage.getItem(AGE_STORAGE_KEY);
         if (ageRaw) {
           const hatchedAt = parseInt(ageRaw, 10);
@@ -239,33 +236,9 @@ export default function HomeScreen() {
           const ageInDays = Math.floor(ageInMs / (1000 * 60 * 60 * 24));
           setAge(ageInDays);
         }
-
-        const infraRaw = await AsyncStorage.getItem(APS_INFRACTIONS_KEY);
-        if (infraRaw) {
-          setApsInfractions(parseInt(infraRaw, 10));
-        }
-
-        // Load needs
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const saved: StoredNeeds = JSON.parse(raw);
-          const now = Date.now();
-          const elapsedMs = now - saved.lastUpdated;
-          if (elapsedMs > 0) {
-            const decayPerMs = getDecayPerMs(DECAY_PER_TICK, TICK_MS);
-            setNeeds(applyDecay(saved.needs, decayPerMs, elapsedMs));
-          } else {
-            setNeeds(saved.needs);
-          }
-        } else {
-          setNeeds({ mood: 0.5, hunger: 0.04, clean: 0.5, rest: 0.1 });
-        }
       } catch (e) {
-        console.warn("Failed to initialize needs/hatch", e);
-        setNeeds({ mood: 0.5, hunger: 0.04, clean: 0.5, rest: 0.1 });
+        console.warn("Failed to initialize hatching state", e);
         setIsHatched(false);
-      } finally {
-        setIsInitialized(true);
       }
     };
     initialize();
@@ -287,56 +260,15 @@ export default function HomeScreen() {
   }, [hatchTime]);
 
   useEffect(() => {
-    const handleAppStateChange = async (nextState: AppStateStatus) => {
-      const prevState = appState.current;
-      appState.current = nextState;
-
-      // Going to background/inactive: save needs, timestamp, and pause decay interval
-      if (
-        prevState === "active" &&
-        (nextState === "inactive" || nextState === "background")
-      ) {
-        // Pause the decay interval
-        if (decayIntervalRef.current) {
-          clearInterval(decayIntervalRef.current);
-          decayIntervalRef.current = null;
-        }
-
-        if (needs !== null) {
-          const data: StoredNeeds = {
-            needs,
-            lastUpdated: Date.now(),
-          };
-          try {
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-          } catch (e) {
-            console.warn("Failed to save needs on background", e);
-          }
-        }
-      }
-      // Came back to foreground: apply offline decay and resume decay interval
-      if (
-        (prevState === "inactive" || prevState === "background") &&
-        nextState === "active"
-      ) {
-        applyOfflineDecay();
-      }
-    };
-
-    const sub = AppState.addEventListener("change", handleAppStateChange);
-    return () => sub.remove();
-  }, [needs]);
-
-  useEffect(() => {
     if (needs === null) return;
 
     const saveState = async () => {
-      const data: StoredNeeds = {
+      const data = {
         needs,
         lastUpdated: Date.now(),
       };
       try {
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        await AsyncStorage.setItem("zibu_needs_v1", JSON.stringify(data));
       } catch (e) {
         console.warn("Failed to save needs", e);
       }
@@ -344,109 +276,6 @@ export default function HomeScreen() {
 
     saveState();
   }, [needs]);
-
-  // Sleep animation effect
-  useEffect(() => {
-    if (!isSleeping) {
-      setSleepFrame(0);
-      return;
-    }
-
-    let isAnimating = true;
-    let startTime = Date.now();
-
-    const animate = () => {
-      if (!isAnimating) return;
-
-      const elapsed = Date.now() - startTime;
-      const expectedFrame = Math.floor((elapsed / 1000) * SLEEP_FPS);
-
-      if (expectedFrame < SLEEP_FRAME_COUNT) {
-        setSleepFrame(expectedFrame);
-        requestAnimationFrame(animate);
-      } else {
-        // Stay on last frame (sleeping)
-        setSleepFrame(SLEEP_FRAME_COUNT - 1);
-      }
-    };
-
-    animate();
-
-    return () => {
-      isAnimating = false;
-    };
-  }, [isSleeping]);
-
-  // Animation: alternate between single and double blink
-  useEffect(() => {
-    let isPlaying = true;
-    let timeoutId: NodeJS.Timeout | null = null;
-
-    const playBlink = (count: number, speed: number = FPS) => {
-      return new Promise<void>((resolve) => {
-        let blinkCount = 0;
-
-        const playOnce = () => {
-          let startTime = Date.now();
-          const animate = () => {
-            if (!isPlaying) return;
-            const elapsed = Date.now() - startTime;
-            const expectedFrame = Math.floor((elapsed / 1000) * speed);
-
-            if (expectedFrame < FRAME_COUNT) {
-              setFrame(expectedFrame);
-              requestAnimationFrame(animate);
-            } else {
-              setFrame(0);
-              blinkCount++;
-
-              if (blinkCount < count) {
-                // Wait 200ms between blinks, then play again
-                timeoutId = setTimeout(playOnce, 200);
-              } else {
-                // All blinks done
-                resolve();
-              }
-            }
-          };
-          animate();
-        };
-
-        playOnce();
-      });
-    };
-
-    const startAnimation = async () => {
-      while (isPlaying) {
-        // Single blink at normal speed
-        await playBlink(1, FPS);
-        if (!isPlaying) break;
-
-        // Wait 2 seconds
-        await new Promise((resolve) => {
-          timeoutId = setTimeout(resolve, 2000);
-        });
-        if (!isPlaying) break;
-
-        // Double blink at faster speed (25 FPS instead of 15)
-        await playBlink(2, 26);
-        if (!isPlaying) break;
-
-        // Wait 5 seconds
-        await new Promise((resolve) => {
-          timeoutId = setTimeout(resolve, 5000);
-        });
-      }
-    };
-
-    const timeout = setTimeout(() => startAnimation(), 500);
-
-    return () => {
-      isPlaying = false;
-      if (timeout) clearTimeout(timeout);
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, []);
 
   // Update cleaning ref when tool selection changes
   useEffect(() => {
@@ -492,19 +321,16 @@ export default function HomeScreen() {
     }
   }, [inventory.deflated_ball, selectedToy]);
 
-  // Accelerometer for hatching and play
-  useEffect(() => {
-    let subscription: any;
-    let shakeTimeout: NodeJS.Timeout | null = null;
+  // Use accelerometer hook for hatching and play
+  const lastAccelShakeTime = useRef<number>(0);
+  const accelShakeTimeout = useRef<NodeJS.Timeout | null>(null);
 
-    const setupAccelerometer = async () => {
-      await Accelerometer.setUpdateInterval(100);
-      subscription = Accelerometer.addListener(({ x, y, z }) => {
-        const acceleration = Math.sqrt(x * x + y * y + z * z);
-        const now = Date.now();
-
+  useAccelerometer(
+    isHatched !== null, // Enable when we know hatching status
+    {
+      onShake: (now) => {
         // Hatching screen: count shakes
-        if (isHatched === false && acceleration > 2) {
+        if (isHatched === false) {
           setHatchShakeCount((count) => {
             const next = count + 1;
             if (next >= HATCH_SHAKE_TARGET) {
@@ -514,7 +340,6 @@ export default function HomeScreen() {
               setAge(0);
               AsyncStorage.setItem(HATCH_STORAGE_KEY, "true");
               AsyncStorage.setItem(AGE_STORAGE_KEY, now.toString());
-              AsyncStorage.setItem(APS_INFRACTIONS_KEY, "0");
             }
             return next;
           });
@@ -523,12 +348,11 @@ export default function HomeScreen() {
         // Main app play logic
         if (
           isHatched &&
-          acceleration > 2 &&
           isPlayingRef.current &&
           inventoryRef.current.deflated_ball > 0 &&
-          now - lastShakeRef.current > 500
+          now - lastAccelShakeTime.current > 500
         ) {
-          lastShakeRef.current = now;
+          lastAccelShakeTime.current = now;
           // Use 4% of the toy's durability per shake (25 shakes to destroy)
           useDurableItemRef.current("deflated_ball", 0.04);
           setNeeds((prev) => {
@@ -539,23 +363,17 @@ export default function HomeScreen() {
             };
           });
           setIsShaking(true);
-          if (shakeTimeout) clearTimeout(shakeTimeout);
+          if (accelShakeTimeout.current)
+            clearTimeout(accelShakeTimeout.current);
           setIsPlaying(true);
-          shakeTimeout = setTimeout(() => {
+          accelShakeTimeout.current = setTimeout(() => {
             setIsShaking(false);
           }, 600);
         }
-      });
-    };
-
-    setupAccelerometer();
-    applyOfflineDecay();
-
-    return () => {
-      subscription?.remove();
-      if (shakeTimeout) clearTimeout(shakeTimeout);
-    };
-  }, [isHatched, useDurableItem]);
+      },
+    },
+    500 // debounceMs
+  );
 
   // Sleep effect: increase rested by 1% per second when sleeping
   useEffect(() => {
@@ -586,190 +404,33 @@ export default function HomeScreen() {
     }
   }, [inventory.tattered_blanket, isSleeping]);
 
-  // Eat animation effect - loops continuously while feeding
+  // Monitor needs to detect if meter is critical
   useEffect(() => {
-    if (!isFeeding) {
-      setEatFrame(0);
-      return;
-    }
-
-    let isAnimating = true;
-    let startTime = Date.now();
-
-    const animate = () => {
-      if (!isAnimating || !isFeeding) return;
-
-      const elapsed = Date.now() - startTime;
-      const expectedFrame =
-        Math.floor((elapsed / 1000) * EAT_FPS) % EAT_FRAME_COUNT;
-
-      setEatFrame(expectedFrame);
-      requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => {
-      isAnimating = false;
-    };
-  }, [isFeeding]);
-
-  // Play animation: play once per shake action, then stop
-  useEffect(() => {
-    if (!isPlaying) {
-      setPlayFrame(0);
-      return;
-    }
-
-    let isAnimating = true;
-    let startTime = Date.now();
-
-    const animate = () => {
-      if (!isAnimating) return;
-
-      const elapsed = Date.now() - startTime;
-      let frameIdx = Math.floor((elapsed / 1000) * PLAYING_FPS);
-      if (frameIdx >= PLAYING_FRAME_COUNT) {
-        frameIdx = PLAYING_FRAME_COUNT - 1;
-        setPlayFrame(frameIdx);
-        setIsPlaying(false);
-        return;
-      }
-      setPlayFrame(frameIdx);
-      requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => {
-      isAnimating = false;
-    };
-  }, [isPlaying]);
-
-  // Upset animation effect - plays once when meter drops below 10%
-  useEffect(() => {
-    if (!needs) return; // Not initialized yet
-    // Check if any meter is below 10%
+    if (!needs) return;
     const anyMeterCritical = Object.values(needs).some((value) => value < 0.1);
 
     if (anyMeterCritical && !hasPlayedUpsetRef.current) {
-      // Trigger upset animation
       setIsUpset(true);
       hasPlayedUpsetRef.current = true;
     } else if (!anyMeterCritical && hasPlayedUpsetRef.current) {
-      // Reset when all meters are back above 10%
       hasPlayedUpsetRef.current = false;
       setIsUpset(false);
-      setUpsetFrame(0);
     }
   }, [needs]);
 
-  // Play upset animation frames
+  // Monitor needs to detect if meter is critical
   useEffect(() => {
-    if (!isUpset) return;
+    if (!needs) return;
+    const anyMeterCritical = Object.values(needs).some((value) => value < 0.1);
 
-    let isAnimating = true;
-    let startTime = Date.now();
-
-    const animate = () => {
-      if (!isAnimating) return;
-
-      const elapsed = Date.now() - startTime;
-      const expectedFrame = Math.floor((elapsed / 1000) * UPSET_FPS);
-
-      if (expectedFrame < UPSET_FRAME_COUNT) {
-        setUpsetFrame(expectedFrame);
-        requestAnimationFrame(animate);
-      } else {
-        // Stay on last frame
-        setUpsetFrame(UPSET_FRAME_COUNT - 1);
-      }
-    };
-
-    animate();
-
-    return () => {
-      isAnimating = false;
-    };
-  }, [isUpset]);
-
-  // Slowly decrease each need over time
-  useEffect(() => {
-    if (!isInitialized) return; // Wait for initialization
-
-    // Only start decay interval if app is active
-    if (appState.current === "active") {
-      decayIntervalRef.current = setInterval(() => {
-        setNeeds((prev) => {
-          if (!prev) return null;
-          const next: Record<NeedKey, number> = { ...prev };
-          (Object.keys(next) as NeedKey[]).forEach((key) => {
-            next[key] = Math.max(0, next[key] - DECAY_PER_TICK);
-          });
-          return next;
-        });
-      }, TICK_MS);
+    if (anyMeterCritical && !hasPlayedUpsetRef.current) {
+      setIsUpset(true);
+      hasPlayedUpsetRef.current = true;
+    } else if (!anyMeterCritical && hasPlayedUpsetRef.current) {
+      hasPlayedUpsetRef.current = false;
+      setIsUpset(false);
     }
-
-    return () => {
-      if (decayIntervalRef.current) {
-        clearInterval(decayIntervalRef.current);
-        decayIntervalRef.current = null;
-      }
-    };
-  }, [isInitialized]);
-
-  // Resume decay interval when returning to foreground
-  useEffect(() => {
-    const handleAppStateChange = (nextState: AppStateStatus) => {
-      if (
-        nextState === "active" &&
-        isInitialized &&
-        !decayIntervalRef.current
-      ) {
-        // Restart the decay interval when returning to foreground
-        decayIntervalRef.current = setInterval(() => {
-          setNeeds((prev) => {
-            if (!prev) return null;
-            const next: Record<NeedKey, number> = { ...prev };
-            (Object.keys(next) as NeedKey[]).forEach((key) => {
-              next[key] = Math.max(0, next[key] - DECAY_PER_TICK);
-            });
-            return next;
-          });
-        }, TICK_MS);
-      }
-    };
-
-    const sub = AppState.addEventListener("change", handleAppStateChange);
-    return () => sub.remove();
-  }, [isInitialized]);
-
-  const applyOfflineDecay = async () => {
-    try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-
-      const saved: StoredNeeds = JSON.parse(raw);
-      const now = Date.now();
-      const elapsedMs = now - saved.lastUpdated;
-
-      if (elapsedMs <= 0) return;
-
-      const decayPerMs = getDecayPerMs(DECAY_PER_TICK, TICK_MS);
-      const decayedNeeds = applyDecay(saved.needs, decayPerMs, elapsedMs);
-
-      // Update both state and storage with decayed needs
-      setNeeds(decayedNeeds);
-      const updatedData: StoredNeeds = {
-        needs: decayedNeeds,
-        lastUpdated: now,
-      };
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedData));
-    } catch (e) {
-      console.warn("Failed to load/apply offline decay", e);
-    }
-  };
+  }, [needs]);
 
   // Show loading or hatching screen
   if (!isInitialized || needs === null || isHatched === null) {
@@ -787,9 +448,7 @@ export default function HomeScreen() {
   if (isTakenByAPS) {
     // APS taken Zibu screen - with escalating costs and permanent loss on 3rd infraction
     const currentInfraction = apsInfractions + 1; // Next infraction number
-    const isPermanentLoss = currentInfraction > 3; // Game over on 4th attempt
-    const rescueCost =
-      currentInfraction <= 3 ? APS_COSTS[currentInfraction - 1] : 0;
+    const rescueCost = currentCost; // From the hook
 
     const handleRescueZibu = async () => {
       if (isPermanentLoss) return; // Cannot rescue on permanent loss
@@ -805,29 +464,20 @@ export default function HomeScreen() {
           rest: 0.5,
         };
 
-        // SAVE TO STORAGE FIRST to ensure it's persisted before state updates
-        const data: StoredNeeds = {
-          needs: rescuedNeeds,
-          lastUpdated: Date.now(),
-        };
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-
-        // Increment infractions
-        const newInfraction = apsInfractions + 1;
-        setApsInfractions(newInfraction);
+        // SAVE TO STORAGE FIRST
         await AsyncStorage.setItem(
-          APS_INFRACTIONS_KEY,
-          newInfraction.toString()
+          "zibu_needs_v1",
+          JSON.stringify({
+            needs: rescuedNeeds,
+            lastUpdated: Date.now(),
+          })
         );
 
-        // NOW update state
+        // Update state
         setNeeds(rescuedNeeds);
-        setJustRescued(true);
+        await recordRescue();
+        recordExit();
         setIsTakenByAPS(false);
-        lastAPSExitTimeRef.current = Date.now();
-
-        // Re-enable APS monitoring after 10 seconds to give plenty of time for needs to stabilize
-        setTimeout(() => setJustRescued(false), 10000);
       } else {
         Alert.alert(
           "Not Enough Coins",
@@ -840,20 +490,18 @@ export default function HomeScreen() {
       // Reset everything for a fresh start
       await AsyncStorage.removeItem(HATCH_STORAGE_KEY);
       await AsyncStorage.removeItem(AGE_STORAGE_KEY);
-      await AsyncStorage.removeItem(APS_INFRACTIONS_KEY);
-      await AsyncStorage.removeItem(STORAGE_KEY);
+      await AsyncStorage.removeItem("zibu_needs_v1");
       // Also clear the meteor intro so user sees intro screen again
       await AsyncStorage.removeItem("zibu_meteor_intro_seen_v1");
+      await resetAPS();
 
       // Reset local state
       setIsHatched(null);
       setHatchShakeCount(0);
       setHatchTime(null);
       setAge(0);
-      setApsInfractions(0);
       setIsTakenByAPS(false);
       setNeeds(null);
-      setIsInitialized(false);
 
       // Use the onboarding context to reset to intro screen
       if (onboardingContext?.resetOnboarding) {

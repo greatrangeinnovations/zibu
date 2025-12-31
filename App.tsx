@@ -144,6 +144,12 @@ export default function HomeScreen() {
   const [isFeeding, setIsFeeding] = useState(false);
   const [isUpset, setIsUpset] = useState(false);
 
+  // Swipe tracking for sponge visual
+  const [swipePosition, setSwipePosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
   // Animation frames - using custom hooks
   const frame = useBlinkAnimation(); // Complex blink pattern: single, wait, double, wait, repeat
 
@@ -210,12 +216,29 @@ export default function HomeScreen() {
   const useDurableItemRef = useRef(useDurableItem);
   const inventoryRef = useRef(inventory);
   const durabilityRef = useRef(durability);
+  const contentViewRef = useRef<View>(null);
+  const [contentLayout, setContentLayout] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => isCleaningRef.current,
       onMoveShouldSetPanResponder: () => isCleaningRef.current,
+      onPanResponderMove: (evt, gestureState) => {
+        // Update swipe position to show sponge following the swipe
+        if (isCleaningRef.current) {
+          setSwipePosition({
+            x: gestureState.moveX,
+            y: gestureState.moveY,
+          });
+        }
+      },
       onPanResponderRelease: (evt, gestureState) => {
+        // Clear swipe position when gesture ends
+        setSwipePosition(null);
+
         // Detect horizontal swipe (distance > 20px)
         if (
           Math.abs(gestureState.dx) > 20 &&
@@ -831,7 +854,14 @@ export default function HomeScreen() {
         </View>
 
         {/* Content with Zibu inside background */}
-        <View style={styles.content}>
+        <View
+          style={styles.content}
+          ref={contentViewRef}
+          onLayout={(event) => {
+            const { x, y } = event.nativeEvent.layout;
+            setContentLayout({ x, y });
+          }}
+        >
           <View {...panResponder.panHandlers}>
             <View
               style={{
@@ -936,6 +966,24 @@ export default function HomeScreen() {
               >
                 {/* Transparent overlay for feeding */}
               </Pressable>
+            )}
+
+            {/* Sponge icon that follows the swipe during washing */}
+            {selectedCleanTool && swipePosition && (
+              <View
+                style={{
+                  position: "absolute",
+                  left: swipePosition.x - 80,
+                  top: swipePosition.y - 400,
+                  width: 40,
+                  height: 40,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  pointerEvents: "none",
+                }}
+              >
+                <Eraser size={32} color="#E8A87C" />
+              </View>
             )}
           </View>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useContext } from "react";
+import React, { useEffect, useRef, useState, useContext, useMemo } from "react";
 import {
   View,
   Text,
@@ -63,6 +63,7 @@ import {
   useAnimationFrame,
   useAccelerometer,
   useAPSSystem,
+  useBlinkAnimation,
 } from "./hooks";
 import type { NeedKey } from "./types";
 
@@ -142,33 +143,51 @@ export default function HomeScreen() {
   const [isFeeding, setIsFeeding] = useState(false);
   const [isUpset, setIsUpset] = useState(false);
 
-  // Animation frames - using custom hook
-  const frame = useAnimationFrame(true, {
-    fps: FPS,
-    frameCount: FRAME_COUNT,
-    loop: true,
-  });
-  const sleepFrame = useAnimationFrame(isSleeping, {
-    fps: SLEEP_FPS,
-    frameCount: SLEEP_FRAME_COUNT,
-    loop: false,
-  });
-  const playFrame = useAnimationFrame(isPlaying, {
-    fps: PLAYING_FPS,
-    frameCount: PLAYING_FRAME_COUNT,
-    loop: false,
-    onComplete: () => setIsPlaying(false),
-  });
-  const eatFrame = useAnimationFrame(isFeeding, {
-    fps: EAT_FPS,
-    frameCount: EAT_FRAME_COUNT,
-    loop: true,
-  });
-  const upsetFrame = useAnimationFrame(isUpset, {
-    fps: UPSET_FPS,
-    frameCount: UPSET_FRAME_COUNT,
-    loop: false,
-  });
+  // Animation frames - using custom hooks
+  const frame = useBlinkAnimation(); // Complex blink pattern: single, wait, double, wait, repeat
+
+  // Memoize animation configs to prevent unnecessary re-renders
+  const sleepConfig = useMemo(
+    () => ({
+      fps: SLEEP_FPS,
+      frameCount: SLEEP_FRAME_COUNT,
+      loop: false,
+    }),
+    []
+  );
+
+  const playConfig = useMemo(
+    () => ({
+      fps: PLAYING_FPS,
+      frameCount: PLAYING_FRAME_COUNT,
+      loop: false,
+      onComplete: () => setIsPlaying(false),
+    }),
+    [setIsPlaying]
+  );
+
+  const eatConfig = useMemo(
+    () => ({
+      fps: EAT_FPS,
+      frameCount: EAT_FRAME_COUNT,
+      loop: true,
+    }),
+    []
+  );
+
+  const upsetConfig = useMemo(
+    () => ({
+      fps: UPSET_FPS,
+      frameCount: UPSET_FRAME_COUNT,
+      loop: false,
+    }),
+    []
+  );
+
+  const sleepFrame = useAnimationFrame(isSleeping, sleepConfig);
+  const playFrame = useAnimationFrame(isPlaying, playConfig);
+  const eatFrame = useAnimationFrame(isFeeding, eatConfig);
+  const upsetFrame = useAnimationFrame(isUpset, upsetConfig);
 
   // Hatching state
   const [isHatched, setIsHatched] = useState<boolean | null>(null);

@@ -13,48 +13,64 @@ export interface AnimationConfig {
  */
 export function useAnimationFrame(isActive: boolean, config: AnimationConfig) {
   const [frame, setFrame] = useState(0);
-  const isAnimatingRef = useRef(true);
+  const animationFrameIdRef = useRef<number | null>(null);
+  const isCompleteRef = useRef(false);
 
   useEffect(() => {
+    // Cancel any existing animation frame
+    if (animationFrameIdRef.current !== null) {
+      cancelAnimationFrame(animationFrameIdRef.current);
+      animationFrameIdRef.current = null;
+    }
+
     if (!isActive) {
       setFrame(0);
+      isCompleteRef.current = false;
       return;
     }
 
-    isAnimatingRef.current = true;
+    isCompleteRef.current = false;
     let startTime = Date.now();
 
     const animate = () => {
-      if (!isAnimatingRef.current) return;
+      if (isCompleteRef.current) {
+        animationFrameIdRef.current = null;
+        return;
+      }
 
       const elapsed = Date.now() - startTime;
-      let expectedFrame = Math.floor((elapsed / 1000) * config.fps);
+      const expectedFrame = Math.floor((elapsed / 1000) * config.fps);
 
       if (config.loop) {
-        // Loop the animation
-        expectedFrame = expectedFrame % config.frameCount;
-        setFrame(expectedFrame);
-        requestAnimationFrame(animate);
+        // Loop the animation indefinitely
+        const loopedFrame = expectedFrame % config.frameCount;
+        setFrame(loopedFrame);
+        animationFrameIdRef.current = requestAnimationFrame(animate);
       } else {
         // Play once then stop
         if (expectedFrame < config.frameCount) {
           setFrame(expectedFrame);
-          requestAnimationFrame(animate);
+          animationFrameIdRef.current = requestAnimationFrame(animate);
         } else {
-          // Animation complete
+          // Animation complete - stay on last frame
           setFrame(config.frameCount - 1);
-          isAnimatingRef.current = false;
+          isCompleteRef.current = true;
+          animationFrameIdRef.current = null;
           config.onComplete?.();
         }
       }
     };
 
-    animate();
+    animationFrameIdRef.current = requestAnimationFrame(animate);
 
     return () => {
-      isAnimatingRef.current = false;
+      if (animationFrameIdRef.current !== null) {
+        cancelAnimationFrame(animationFrameIdRef.current);
+        animationFrameIdRef.current = null;
+      }
+      isCompleteRef.current = true;
     };
-  }, [isActive, config]);
+  }, [isActive, config.fps, config.frameCount, config.loop, config.onComplete]);
 
   return frame;
 }

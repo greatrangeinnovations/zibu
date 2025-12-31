@@ -23,6 +23,7 @@ export type ZibuSpriteProps = {
   EAT_ROWS: number;
   UPSET_COLS: number;
   UPSET_ROWS: number;
+  dirtiness?: number;
 };
 
 export default function ZibuSprite({
@@ -46,6 +47,7 @@ export default function ZibuSprite({
   EAT_ROWS,
   UPSET_COLS,
   UPSET_ROWS,
+  dirtiness = 0,
 }: ZibuSpriteProps) {
   if (isUpset) {
     return (
@@ -68,6 +70,24 @@ export default function ZibuSprite({
           contentFit="cover"
           cachePolicy="memory"
         />
+        {dirtiness > 0 && (
+          <ExpoImage
+            source={require("../assets/upset/upset_spritesheet.png")}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: DISPLAY_SIZE * UPSET_COLS,
+              height: DISPLAY_SIZE * UPSET_ROWS,
+              marginLeft: -((upsetFrame % UPSET_COLS) * DISPLAY_SIZE),
+              marginTop: -(Math.floor(upsetFrame / UPSET_COLS) * DISPLAY_SIZE),
+              opacity: dirtiness * 0.4,
+            }}
+            contentFit="cover"
+            cachePolicy="memory"
+            tintColor="#3D2817"
+          />
+        )}
       </View>
     );
   } else if (isSleeping) {
@@ -91,6 +111,24 @@ export default function ZibuSprite({
           contentFit="cover"
           cachePolicy="memory"
         />
+        {dirtiness > 0 && (
+          <ExpoImage
+            source={require("../assets/sleep/sleeping_spritesheet.png")}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: DISPLAY_SIZE * SLEEP_COLS,
+              height: DISPLAY_SIZE * SLEEP_ROWS,
+              marginLeft: -((sleepFrame % SLEEP_COLS) * DISPLAY_SIZE),
+              marginTop: -(Math.floor(sleepFrame / SLEEP_COLS) * DISPLAY_SIZE),
+              opacity: dirtiness * 0.4,
+            }}
+            contentFit="cover"
+            cachePolicy="memory"
+            tintColor="#3D2817"
+          />
+        )}
       </View>
     );
   } else if (isFeeding) {
@@ -114,6 +152,24 @@ export default function ZibuSprite({
           contentFit="cover"
           cachePolicy="memory"
         />
+        {dirtiness > 0 && (
+          <ExpoImage
+            source={require("../assets/eat/eat_spritesheet2.png")}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: DISPLAY_SIZE * EAT_COLS,
+              height: DISPLAY_SIZE * EAT_ROWS,
+              marginLeft: -((eatFrame % EAT_COLS) * DISPLAY_SIZE),
+              marginTop: -(Math.floor(eatFrame / EAT_COLS) * DISPLAY_SIZE),
+              opacity: dirtiness * 0.4,
+            }}
+            contentFit="cover"
+            cachePolicy="memory"
+            tintColor="#3D2817"
+          />
+        )}
       </View>
     );
   } else if (isPlaying) {
@@ -137,6 +193,24 @@ export default function ZibuSprite({
           contentFit="cover"
           cachePolicy="memory"
         />
+        {dirtiness > 0 && (
+          <ExpoImage
+            source={require("../assets/playing/laugh_spritesheet.png")}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: DISPLAY_SIZE * PLAYING_COLS,
+              height: DISPLAY_SIZE * PLAYING_ROWS,
+              marginLeft: -((playFrame % PLAYING_COLS) * DISPLAY_SIZE),
+              marginTop: -(Math.floor(playFrame / PLAYING_COLS) * DISPLAY_SIZE),
+              opacity: dirtiness * 0.4,
+            }}
+            contentFit="cover"
+            cachePolicy="memory"
+            tintColor="#3D2817"
+          />
+        )}
       </View>
     );
   } else {
@@ -160,6 +234,24 @@ export default function ZibuSprite({
           contentFit="cover"
           cachePolicy="memory"
         />
+        {dirtiness > 0 && (
+          <ExpoImage
+            source={require("../assets/blinking/blink_spritesheet.png")}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: DISPLAY_SIZE * COLS,
+              height: DISPLAY_SIZE * ROWS,
+              marginLeft: -((frame % COLS) * DISPLAY_SIZE),
+              marginTop: -(Math.floor(frame / COLS) * DISPLAY_SIZE),
+              opacity: dirtiness * 0.4,
+            }}
+            contentFit="cover"
+            cachePolicy="memory"
+            tintColor="#3D2817"
+          />
+        )}
       </View>
     );
   }

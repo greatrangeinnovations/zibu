@@ -917,6 +917,7 @@ export default function HomeScreen() {
                 UPSET_ROWS={UPSET_ROWS}
                 PLAYING_COLS={PLAYING_COLS}
                 PLAYING_ROWS={PLAYING_ROWS}
+                dirtiness={needs ? 1 - needs.clean : 0}
               />
             </View>
             {selectedFood && getTotalFood() > 0 && !isTakenByAPS && (

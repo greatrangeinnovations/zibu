@@ -150,6 +150,19 @@ export default function HomeScreen() {
     y: number;
   } | null>(null);
 
+  // Bubble particles for cleaning effect
+  interface Bubble {
+    id: number;
+    x: number;
+    y: number;
+    size: number;
+    opacity: number;
+    vx: number;
+    vy: number;
+  }
+  const [bubbles, setBubbles] = useState<Bubble[]>([]);
+  const bubbleIdRef = useRef(0);
+
   // Surface area cleaning tracking
   const lastSwipePositionRef = useRef<{ x: number; y: number } | null>(null);
   const accumulatedDistanceRef = useRef(0);
@@ -200,6 +213,56 @@ export default function HomeScreen() {
   const playFrame = useAnimationFrame(isPlaying, playConfig);
   const eatFrame = useAnimationFrame(isFeeding, eatConfig);
   const upsetFrame = useAnimationFrame(isUpset, upsetConfig);
+
+  // Bubble animation effect
+  useEffect(() => {
+    if (!selectedCleanTool || !swipePosition) {
+      // Fade out remaining bubbles when cleaning stops
+      const fadeTimer = setInterval(() => {
+        setBubbles((prev) => {
+          const updated = prev
+            .map((bubble) => ({
+              ...bubble,
+              opacity: bubble.opacity - 0.05,
+            }))
+            .filter((bubble) => bubble.opacity > 0);
+          if (updated.length === 0) {
+            clearInterval(fadeTimer);
+          }
+          return updated;
+        });
+      }, 30);
+      return () => clearInterval(fadeTimer);
+    }
+
+    // Randomly spawn bubbles at swipe position
+    if (Math.random() < 0.3) {
+      const newBubble: Bubble = {
+        id: bubbleIdRef.current++,
+        x: swipePosition.x + (Math.random() - 0.5) * 20,
+        y: swipePosition.y + (Math.random() - 0.5) * 20,
+        size: Math.random() * 6 + 20,
+        opacity: 1,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 1) * 2,
+      };
+      setBubbles((prev) => [...prev, newBubble]);
+    }
+
+    // Animate existing bubbles (float up while cleaning)
+    const timer = setInterval(() => {
+      setBubbles((prev) => {
+        return prev.map((bubble) => ({
+          ...bubble,
+          x: bubble.x + bubble.vx,
+          y: bubble.y + bubble.vy - 0.5, // Float upward
+          vy: bubble.vy * 0.98, // Dampen vertical velocity
+        }));
+      });
+    }, 30);
+
+    return () => clearInterval(timer);
+  }, [selectedCleanTool, swipePosition]);
 
   // Hatching state
   const [isHatched, setIsHatched] = useState<boolean | null>(null);
@@ -1009,6 +1072,28 @@ export default function HomeScreen() {
                 <Eraser size={32} color="#E8A87C" />
               </View>
             )}
+
+            {/* Bubble particles during cleaning */}
+            {bubbles.map((bubble) => (
+              <View
+                key={bubble.id}
+                style={{
+                  position: "absolute",
+                  left: bubble.x - 80 - bubble.size / 2,
+                  top: bubble.y - 400 - bubble.size / 2,
+                  width: bubble.size,
+                  height: bubble.size,
+                  borderRadius: bubble.size / 2,
+                  backgroundColor: `rgba(200, 220, 255, ${
+                    bubble.opacity * 0.6
+                  })`,
+                  borderWidth: 1,
+                  borderColor: `rgba(100, 180, 255, ${bubble.opacity * 0.8})`,
+                  pointerEvents: "none",
+                  opacity: bubble.opacity,
+                }}
+              />
+            ))}
           </View>
 
           <Modal

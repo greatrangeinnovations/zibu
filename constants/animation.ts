@@ -21,7 +21,7 @@ export const UPSET_COLS = 5; // 5 columns
 export const UPSET_ROWS = 1; // 1 row
 export const UPSET_FPS = 15;
 
-export const PLAYING_FRAME_COUNT = 24;
-export const PLAYING_COLS = 3; // 3 columns
-export const PLAYING_ROWS = 8; // 8 rows
+export const PLAYING_FRAME_COUNT = 12;
+export const PLAYING_COLS = 12;
+export const PLAYING_ROWS = 1;
 export const PLAYING_FPS = 15;

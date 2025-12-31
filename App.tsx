@@ -614,7 +614,7 @@ export default function HomeScreen() {
     };
   }, [isFeeding]);
 
-  // Play animation: only play while shaking, and finish cycle when shaking stops
+  // Play animation: play once per shake action, then stop
   useEffect(() => {
     if (!isPlaying) {
       setPlayFrame(0);
@@ -623,7 +623,6 @@ export default function HomeScreen() {
 
     let isAnimating = true;
     let startTime = Date.now();
-    let finished = false;
 
     const animate = () => {
       if (!isAnimating) return;
@@ -632,26 +631,12 @@ export default function HomeScreen() {
       let frameIdx = Math.floor((elapsed / 1000) * PLAYING_FPS);
       if (frameIdx >= PLAYING_FRAME_COUNT) {
         frameIdx = PLAYING_FRAME_COUNT - 1;
-        finished = true;
+        setPlayFrame(frameIdx);
+        setIsPlaying(false);
+        return;
       }
       setPlayFrame(frameIdx);
-
-      // If shaking, keep looping
-      if (isShaking) {
-        if (frameIdx === PLAYING_FRAME_COUNT - 1) {
-          // Restart animation
-          startTime = Date.now();
-          finished = false;
-        }
-        requestAnimationFrame(animate);
-      } else {
-        // Not shaking: finish current cycle, then stop
-        if (frameIdx < PLAYING_FRAME_COUNT - 1) {
-          requestAnimationFrame(animate);
-        } else {
-          setIsPlaying(false);
-        }
-      }
+      requestAnimationFrame(animate);
     };
 
     animate();
@@ -659,7 +644,7 @@ export default function HomeScreen() {
     return () => {
       isAnimating = false;
     };
-  }, [isPlaying, isShaking]);
+  }, [isPlaying]);
 
   // Upset animation effect - plays once when meter drops below 10%
   useEffect(() => {

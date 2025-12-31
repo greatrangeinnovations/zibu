@@ -1,5 +1,6 @@
 import React from "react";
 import { Image as ExpoImage } from "expo-image";
+import { View } from "react-native";
 
 export type ZibuSpriteProps = {
   isUpset: boolean;
@@ -48,73 +49,113 @@ export default function ZibuSprite({
 }: ZibuSpriteProps) {
   if (isUpset) {
     return (
-      <ExpoImage
-        source={require("../assets/upset/upset_spritesheet.png")}
+      <View
         style={{
-          width: DISPLAY_SIZE * UPSET_COLS,
-          height: DISPLAY_SIZE * UPSET_ROWS,
-          marginLeft: -((upsetFrame % UPSET_COLS) * DISPLAY_SIZE),
-          marginTop: -(Math.floor(upsetFrame / UPSET_COLS) * DISPLAY_SIZE),
+          width: DISPLAY_SIZE,
+          height: DISPLAY_SIZE,
+          overflow: "hidden",
         }}
-        contentFit="cover"
-        cachePolicy="memory"
-      />
+      >
+        <ExpoImage
+          source={require("../assets/upset/upset_spritesheet.png")}
+          style={{
+            width: DISPLAY_SIZE * UPSET_COLS,
+            height: DISPLAY_SIZE * UPSET_ROWS,
+            marginLeft: -((upsetFrame % UPSET_COLS) * DISPLAY_SIZE),
+            marginTop: -(Math.floor(upsetFrame / UPSET_COLS) * DISPLAY_SIZE),
+          }}
+          contentFit="cover"
+          cachePolicy="memory"
+        />
+      </View>
     );
   } else if (isSleeping) {
     return (
-      <ExpoImage
-        source={require("../assets/sleep/sleeping_spritesheet.png")}
+      <View
         style={{
-          width: DISPLAY_SIZE * SLEEP_COLS,
-          height: DISPLAY_SIZE * SLEEP_ROWS,
-          marginLeft: -((sleepFrame % SLEEP_COLS) * DISPLAY_SIZE),
-          marginTop: -(Math.floor(sleepFrame / SLEEP_COLS) * DISPLAY_SIZE),
+          width: DISPLAY_SIZE,
+          height: DISPLAY_SIZE,
+          overflow: "hidden",
         }}
-        contentFit="cover"
-        cachePolicy="memory"
-      />
+      >
+        <ExpoImage
+          source={require("../assets/sleep/sleeping_spritesheet.png")}
+          style={{
+            width: DISPLAY_SIZE * SLEEP_COLS,
+            height: DISPLAY_SIZE * SLEEP_ROWS,
+            marginLeft: -((sleepFrame % SLEEP_COLS) * DISPLAY_SIZE),
+            marginTop: -(Math.floor(sleepFrame / SLEEP_COLS) * DISPLAY_SIZE),
+          }}
+          contentFit="cover"
+          cachePolicy="memory"
+        />
+      </View>
     );
   } else if (isFeeding) {
     return (
-      <ExpoImage
-        source={require("../assets/eat/eat_spritesheet2.png")}
+      <View
         style={{
-          width: DISPLAY_SIZE * EAT_COLS,
-          height: DISPLAY_SIZE * EAT_ROWS,
-          marginLeft: -((eatFrame % EAT_COLS) * DISPLAY_SIZE),
-          marginTop: -(Math.floor(eatFrame / EAT_COLS) * DISPLAY_SIZE),
+          width: DISPLAY_SIZE,
+          height: DISPLAY_SIZE,
+          overflow: "hidden",
         }}
-        contentFit="cover"
-        cachePolicy="memory"
-      />
+      >
+        <ExpoImage
+          source={require("../assets/eat/eat_spritesheet2.png")}
+          style={{
+            width: DISPLAY_SIZE * EAT_COLS,
+            height: DISPLAY_SIZE * EAT_ROWS,
+            marginLeft: -((eatFrame % EAT_COLS) * DISPLAY_SIZE),
+            marginTop: -(Math.floor(eatFrame / EAT_COLS) * DISPLAY_SIZE),
+          }}
+          contentFit="cover"
+          cachePolicy="memory"
+        />
+      </View>
     );
   } else if (isPlaying) {
     return (
-      <ExpoImage
-        source={require("../assets/playing/playing_spritesheet.png")}
+      <View
         style={{
-          width: DISPLAY_SIZE * PLAYING_COLS,
-          height: DISPLAY_SIZE * PLAYING_ROWS,
-          marginLeft: -((playFrame % PLAYING_COLS) * DISPLAY_SIZE),
-          marginTop: -(Math.floor(playFrame / PLAYING_COLS) * DISPLAY_SIZE),
+          width: DISPLAY_SIZE,
+          height: DISPLAY_SIZE,
+          overflow: "hidden",
         }}
-        contentFit="cover"
-        cachePolicy="memory"
-      />
+      >
+        <ExpoImage
+          source={require("../assets/playing/laugh_spritesheet.png")}
+          style={{
+            width: DISPLAY_SIZE * PLAYING_COLS,
+            height: DISPLAY_SIZE * PLAYING_ROWS,
+            marginLeft: -((playFrame % PLAYING_COLS) * DISPLAY_SIZE),
+            marginTop: -(Math.floor(playFrame / PLAYING_COLS) * DISPLAY_SIZE),
+          }}
+          contentFit="cover"
+          cachePolicy="memory"
+        />
+      </View>
     );
   } else {
     return (
-      <ExpoImage
-        source={require("../assets/blinking/blink_spritesheet.png")}
+      <View
         style={{
-          width: DISPLAY_SIZE * COLS,
-          height: DISPLAY_SIZE * ROWS,
-          marginLeft: -((frame % COLS) * DISPLAY_SIZE),
-          marginTop: -(Math.floor(frame / COLS) * DISPLAY_SIZE),
+          width: DISPLAY_SIZE,
+          height: DISPLAY_SIZE,
+          overflow: "hidden",
         }}
-        contentFit="cover"
-        cachePolicy="memory"
-      />
+      >
+        <ExpoImage
+          source={require("../assets/blinking/blink_spritesheet.png")}
+          style={{
+            width: DISPLAY_SIZE * COLS,
+            height: DISPLAY_SIZE * ROWS,
+            marginLeft: -((frame % COLS) * DISPLAY_SIZE),
+            marginTop: -(Math.floor(frame / COLS) * DISPLAY_SIZE),
+          }}
+          contentFit="cover"
+          cachePolicy="memory"
+        />
+      </View>
     );
   }
 }

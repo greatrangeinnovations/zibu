@@ -71,6 +71,7 @@ function MainTabs() {
         tabBarActiveTintColor: "#6DD19C",
         tabBarInactiveTintColor: "#999",
         tabBarStyle: {
+          paddingTop: 10,
           backgroundColor: "#fff",
           borderTopWidth: 1,
           borderTopColor: "#eee",

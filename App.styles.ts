@@ -5,14 +5,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 0,
-    paddingTop: 10,
-    paddingBottom: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     backgroundColor: "transparent",
     zIndex: 10,
-    position: "absolute",
-    top: 0,
-    width: "100%",
   },
   coinLabel: {
     flexDirection: "row",
@@ -57,10 +53,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    paddingVertical: 10,
-    borderTopWidth: 1,
     borderTopColor: "#eee",
-    backgroundColor: "#fff",
+    backgroundColor: "#000",
   },
   navItem: {
     flex: 1,
@@ -83,9 +77,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "flex-end",
-    paddingHorizontal: 24,
-    paddingBottom: 60,
+    justifyContent: "center",
   },
   zibuImage: {
     width: 300,
@@ -102,10 +94,12 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   statusRow: {
-    marginBottom: 100,
     width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginTop: 16,
   },
   statusItem: {
     alignItems: "center",

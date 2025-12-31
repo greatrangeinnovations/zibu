@@ -8,6 +8,7 @@ import {
   Modal,
   PanResponder,
   Alert,
+  ImageBackground,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -691,389 +692,405 @@ export default function HomeScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.content}>
-        <View {...panResponder.panHandlers}>
-          <View
+      {/* Top bar with coin and age */}
+      <View style={styles.topBar}>
+        <View>
+          <View style={styles.coinLabel}>
+            <Coins size={20} color="#F4D35E" style={{ marginRight: 6 }} />
+            <Text style={styles.coinText}>{coins.toLocaleString()}</Text>
+          </View>
+          <Text
             style={{
-              width: DISPLAY_SIZE,
-              height: DISPLAY_SIZE,
-              overflow: "hidden",
-              borderRadius: 12,
+              fontSize: 12,
+              color: "#666",
+              marginLeft: 2,
+              marginTop: 4,
             }}
           >
-            <ZibuSprite
-              isPlaying={isPlaying}
-              isUpset={isUpset}
-              isSleeping={isSleeping}
-              isFeeding={isFeeding}
-              frame={frame}
-              sleepFrame={sleepFrame}
-              eatFrame={eatFrame}
-              playFrame={playFrame}
-              upsetFrame={upsetFrame}
-              DISPLAY_SIZE={DISPLAY_SIZE}
-              COLS={COLS}
-              ROWS={ROWS}
-              SLEEP_COLS={SLEEP_COLS}
-              SLEEP_ROWS={SLEEP_ROWS}
-              EAT_COLS={EAT_COLS}
-              EAT_ROWS={EAT_ROWS}
-              UPSET_COLS={UPSET_COLS}
-              UPSET_ROWS={UPSET_ROWS}
-              PLAYING_COLS={PLAYING_COLS}
-              PLAYING_ROWS={PLAYING_ROWS}
-            />
-          </View>
-          {selectedFood && getTotalFood() > 0 && !isTakenByAPS && (
-            <Pressable
-              onPressIn={() => {
-                if (isTakenByAPS) return; // Prevent feeding if APS has Zibu
-                setIsSleeping(false); // Stop sleeping if feeding
-                isFeedingRef.current = true; // Start eat animation
-                setIsFeeding(true); // Trigger re-render for eat animation
-                foodUsedRef.current = 0; // Reset food used counter
-
-                // Set the hunger increase rate based on selected food
-                const selectedFoodKey =
-                  selectedFoodRef.current as keyof typeof inventory;
-                const food = FOOD_TYPES[selectedFoodKey];
-                selectedFoodHungerIncreaseRef.current =
-                  food.hungerRestore / 100;
-
-                // Start feeding interval - consume 1 food per second, increase hunger by appropriate amount per second
-                if (!feedIntervalRef.current) {
-                  feedIntervalRef.current = setInterval(() => {
-                    // Check if the selected food type is available using ref
-                    const selectedFoodKey =
-                      selectedFoodRef.current as keyof typeof inventory;
-                    if (
-                      !selectedFoodKey ||
-                      !inventoryRef.current ||
-                      inventoryRef.current[selectedFoodKey] <= 0
-                    ) {
-                      // Stop feeding if selected food type is gone
-                      if (feedIntervalRef.current) {
-                        clearInterval(feedIntervalRef.current);
-                        feedIntervalRef.current = null;
-                      }
-                      isFeedingRef.current = false;
-                      setIsFeeding(false);
-                      selectedFoodHungerIncreaseRef.current = 0;
-                      return;
-                    }
-
-                    // Use the selected food type
-                    subtractInventoryItem(selectedFoodKey, 1);
-
-                    setNeeds((prev) => {
-                      if (!prev) return null;
-                      return {
-                        ...prev,
-                        hunger: Math.min(
-                          1,
-                          prev.hunger + selectedFoodHungerIncreaseRef.current
-                        ),
-                      };
-                    });
-
-                    foodUsedRef.current += 1; // Track how much food we used
-                  }, 1000);
-                }
-              }}
-              onPressOut={() => {
-                isFeedingRef.current = false; // Stop eat animation
-                setIsFeeding(false); // Trigger re-render for eat animation
-                // Stop feeding interval immediately when release
-                if (feedIntervalRef.current) {
-                  clearInterval(feedIntervalRef.current);
-                  feedIntervalRef.current = null;
-                }
-                foodUsedRef.current = 0; // Reset counter
-              }}
-              style={StyleSheet.absoluteFill}
-            >
-              {/* Transparent overlay for feeding */}
-            </Pressable>
-          )}
+            Age: {age} day{age !== 1 ? "s" : ""}
+          </Text>
         </View>
-        {/* Top bar with coin and gear */}
-        <View style={styles.topBar}>
-          <View>
-            <View style={styles.coinLabel}>
-              <Coins size={20} color="#F4D35E" style={{ marginRight: 6 }} />
-              <Text style={styles.coinText}>{coins.toLocaleString()}</Text>
-            </View>
-            <Text
+        <Pressable
+          style={styles.gearButton}
+          onPress={() => setCoinModalOpen(true)}
+        >
+          <Settings size={22} color="#888" />
+        </Pressable>
+      </View>
+
+      {/* Background with Zibu and interactions */}
+      <ImageBackground
+        source={require("./assets/bedroom.png")}
+        style={{ flex: 1 }}
+        resizeMode="cover"
+      >
+        {/* Status icons row (meters) - overlaying background at top */}
+        <View style={styles.statusRow}>
+          <Pressable
+            onPress={() => {
+              if (!inventory.deflated_ball) {
+                Alert.alert(
+                  "No Toy!",
+                  "You don't have a toy. Buy a Deflated Ball from the shop for 5 coins.",
+                  [{ text: "OK" }]
+                );
+                return;
+              }
+              setActiveMode(null);
+              setSelectedFood(null);
+              setSelectedCleanTool(null);
+              setSelectedToy(null);
+              setIsSleeping(false);
+              setSelectedSleepItem(null);
+              setToySwatchOpen(true);
+            }}
+            style={[
+              { flex: 1, alignItems: "center" },
+              activeMode === "play" && styles.selectedActionButton,
+            ]}
+          >
+            <StatusCircle Icon={Smile} label="Happy" value={needs.mood} />
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              if (getTotalFood() === 0) {
+                Alert.alert(
+                  "No Food!",
+                  "You don't have any food. Buy some from the shop to feed Zibu.",
+                  [{ text: "OK" }]
+                );
+                return;
+              }
+              setActiveMode(null);
+              setSelectedFood(null);
+              setSelectedCleanTool(null);
+              setSelectedToy(null);
+              setIsSleeping(false);
+              setSelectedSleepItem(null);
+              setFoodSwatchOpen(true);
+            }}
+            style={[
+              { flex: 1, alignItems: "center", justifyContent: "center" },
+              activeMode === "feed" && styles.selectedActionButton,
+            ]}
+          >
+            <StatusCircle Icon={Utensils} label="Full" value={needs.hunger} />
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              if (!inventory.old_sponge) {
+                Alert.alert(
+                  "No Cleaner!",
+                  "You don't have a cleaner. Buy an Old Sponge from the shop for 5 coins.",
+                  [{ text: "OK" }]
+                );
+                return;
+              }
+              setActiveMode(null);
+              setSelectedFood(null);
+              setSelectedCleanTool(null);
+              setSelectedToy(null);
+              setIsSleeping(false);
+              setSelectedSleepItem(null);
+              setCleanSwatchOpen(true);
+            }}
+            style={[
+              { flex: 1, alignItems: "center" },
+              activeMode === "clean" && styles.selectedActionButton,
+            ]}
+          >
+            <StatusCircle Icon={Bath} label="Clean" value={needs.clean} />
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              if (!inventory.tattered_blanket) {
+                Alert.alert(
+                  "No Blanket!",
+                  "You don't have a blanket. Buy a Tattered Blanket from the shop for 5 coins.",
+                  [{ text: "OK" }]
+                );
+                return;
+              }
+              setActiveMode(null);
+              setSelectedFood(null);
+              setSelectedCleanTool(null);
+              setSelectedToy(null);
+              setIsSleeping(false);
+              setSelectedSleepItem(null);
+              setSleepSwatchOpen(true);
+            }}
+            style={[
+              { flex: 1, alignItems: "center" },
+              activeMode === "sleep" && styles.selectedActionButton,
+            ]}
+          >
+            <StatusCircle Icon={Bed} label="Rested" value={needs.rest} />
+          </Pressable>
+        </View>
+
+        {/* Content with Zibu inside background */}
+        <View style={styles.content}>
+          <View {...panResponder.panHandlers}>
+            <View
               style={{
-                fontSize: 12,
-                color: "#666",
-                marginLeft: 2,
-                marginTop: 4,
+                width: DISPLAY_SIZE,
+                height: DISPLAY_SIZE,
+                overflow: "hidden",
+                borderRadius: 12,
+                justifyContent: "center",
+                alignItems: "center",
               }}
             >
-              Age: {age} day{age !== 1 ? "s" : ""}
-            </Text>
-          </View>
-          <Pressable
-            style={styles.gearButton}
-            onPress={() => setCoinModalOpen(true)}
-          >
-            <Settings size={22} color="#888" />
-          </Pressable>
-        </View>
-        <Modal
-          visible={coinModalOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setCoinModalOpen(false)}
-        >
-          <Pressable
-            style={styles.modalOverlay}
-            onPress={() => setCoinModalOpen(false)}
-          >
-            <View style={styles.gearModalContent}>
-              <Text
-                style={{ fontWeight: "700", fontSize: 18, marginBottom: 12 }}
-              >
-                Settings
-              </Text>
-              <Text style={{ color: "#888", fontSize: 14, marginBottom: 16 }}>
-                Coming soon...
-              </Text>
-              <Pressable
-                style={{
-                  backgroundColor: "#FFB6C1",
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: 6,
-                }}
-                onPress={async () => {
-                  setNeeds({ mood: 0, hunger: 0, clean: 0, rest: 0 });
-                  await AsyncStorage.setItem(
-                    "needs",
-                    JSON.stringify({ mood: 0, hunger: 0, clean: 0, rest: 0 })
-                  );
-                  await AsyncStorage.setItem(
-                    "lastUpdated",
-                    JSON.stringify(Date.now())
-                  );
-                }}
-              >
-                <Text
-                  style={{ color: "#333", fontWeight: "700", fontSize: 12 }}
-                >
-                  Dev: Set All Needs to 0
-                </Text>
-              </Pressable>
+              <ZibuSprite
+                isPlaying={isPlaying}
+                isUpset={isUpset}
+                isSleeping={isSleeping}
+                isFeeding={isFeeding}
+                frame={frame}
+                sleepFrame={sleepFrame}
+                eatFrame={eatFrame}
+                playFrame={playFrame}
+                upsetFrame={upsetFrame}
+                DISPLAY_SIZE={DISPLAY_SIZE}
+                COLS={COLS}
+                ROWS={ROWS}
+                SLEEP_COLS={SLEEP_COLS}
+                SLEEP_ROWS={SLEEP_ROWS}
+                EAT_COLS={EAT_COLS}
+                EAT_ROWS={EAT_ROWS}
+                UPSET_COLS={UPSET_COLS}
+                UPSET_ROWS={UPSET_ROWS}
+                PLAYING_COLS={PLAYING_COLS}
+                PLAYING_ROWS={PLAYING_ROWS}
+              />
             </View>
-          </Pressable>
-        </Modal>
-        <Text style={styles.title}>Zibu</Text>
-        <Text style={styles.subtitle}>Your little space buddy</Text>
+            {selectedFood && getTotalFood() > 0 && !isTakenByAPS && (
+              <Pressable
+                onPressIn={() => {
+                  if (isTakenByAPS) return; // Prevent feeding if APS has Zibu
+                  setIsSleeping(false); // Stop sleeping if feeding
+                  isFeedingRef.current = true; // Start eat animation
+                  setIsFeeding(true); // Trigger re-render for eat animation
+                  foodUsedRef.current = 0; // Reset food used counter
 
-        <SwatchModal
-          visible={sleepSwatchOpen}
-          title="Select Blanket"
-          items={[
-            {
-              key: "tattered_blanket",
-              label: "Tattered Blanket",
-              Icon: StickyNote,
-            },
-          ]}
-          selectedKey={selectedSleepItem}
-          onSelect={(key) => {
-            setActiveMode("sleep");
-            setSelectedSleepItem(key);
-            setSelectedFood(null);
-            setSelectedCleanTool(null);
-            setSelectedToy(null);
-            setSleepSwatchOpen(false);
-            setIsSleeping(true);
-          }}
-          onClose={() => setSleepSwatchOpen(false)}
-          instructions="Zibu is sleeping... (+1%/sec)"
-          selectedActive={isSleeping}
-        />
+                  // Set the hunger increase rate based on selected food
+                  const selectedFoodKey =
+                    selectedFoodRef.current as keyof typeof inventory;
+                  const food = FOOD_TYPES[selectedFoodKey];
+                  selectedFoodHungerIncreaseRef.current =
+                    food.hungerRestore / 100;
 
-        <SwatchModal
-          visible={foodSwatchOpen}
-          title="Select Food"
-          items={Object.entries(FOOD_TYPES)
-            .filter(([key, _]) => inventory[key as keyof typeof inventory] > 0)
-            .map(([key, food]) => {
-              let Icon = Milk;
-              if (key === "star_milk") Icon = Milk;
-              else if (key === "cosmic_fruit") Icon = Salad;
-              else if (key === "galaxy_noodle") Icon = Soup;
-              return {
-                key,
-                label: food.label,
-                Icon,
-              };
-            })}
-          selectedKey={selectedFood}
-          onSelect={(key) => {
-            setActiveMode("feed");
-            setSelectedFood(key);
-            setSelectedCleanTool(null);
-            setSelectedToy(null);
-            setIsSleeping(false);
-            setSelectedSleepItem(null);
-            setFoodSwatchOpen(false);
-          }}
-          onClose={() => setFoodSwatchOpen(false)}
-          instructions="Long hold Zibu to feed"
-          selectedActive={!!selectedFood}
-        />
+                  // Start feeding interval - consume 1 food per second, increase hunger by appropriate amount per second
+                  if (!feedIntervalRef.current) {
+                    feedIntervalRef.current = setInterval(() => {
+                      // Check if the selected food type is available using ref
+                      const selectedFoodKey =
+                        selectedFoodRef.current as keyof typeof inventory;
+                      if (
+                        !selectedFoodKey ||
+                        !inventoryRef.current ||
+                        inventoryRef.current[selectedFoodKey] <= 0
+                      ) {
+                        // Stop feeding if selected food type is gone
+                        if (feedIntervalRef.current) {
+                          clearInterval(feedIntervalRef.current);
+                          feedIntervalRef.current = null;
+                        }
+                        isFeedingRef.current = false;
+                        setIsFeeding(false);
+                        selectedFoodHungerIncreaseRef.current = 0;
+                        return;
+                      }
 
-        <SwatchModal
-          visible={cleanSwatchOpen}
-          title="Select Cleaner"
-          items={[{ key: "old_sponge", label: "Old Sponge", Icon: Eraser }]}
-          selectedKey={selectedCleanTool}
-          onSelect={(key) => {
-            setActiveMode("clean");
-            setSelectedCleanTool(key);
-            setSelectedFood(null);
-            setSelectedToy(null);
-            setIsSleeping(false);
-            setSelectedSleepItem(null);
-            setCleanSwatchOpen(false);
-          }}
-          onClose={() => setCleanSwatchOpen(false)}
-          instructions="Swipe to wash"
-          selectedActive={!!selectedCleanTool}
-        />
+                      // Use the selected food type
+                      subtractInventoryItem(selectedFoodKey, 1);
 
-        <SwatchModal
-          visible={toySwatchOpen}
-          title="Select Toy"
-          items={[
-            { key: "deflated_ball", label: "Deflated Ball", Icon: Volleyball },
-          ]}
-          selectedKey={selectedToy}
-          onSelect={(key) => {
-            setActiveMode("play");
-            setSelectedToy(key);
-            setSelectedFood(null);
-            setSelectedCleanTool(null);
-            setIsSleeping(false);
-            setIsPlaying(true);
-            setSelectedSleepItem(null);
-            setToySwatchOpen(false);
-          }}
-          onClose={() => setToySwatchOpen(false)}
-          instructions="Shake to play"
-          selectedActive={!!selectedToy}
-        />
-      </View>
+                      setNeeds((prev) => {
+                        if (!prev) return null;
+                        return {
+                          ...prev,
+                          hunger: Math.min(
+                            1,
+                            prev.hunger + selectedFoodHungerIncreaseRef.current
+                          ),
+                        };
+                      });
 
-      {/* Status icons row (meters) above nav */}
-      <View style={styles.statusRow}>
-        <Pressable
-          onPress={() => {
-            if (!inventory.deflated_ball) {
-              Alert.alert(
-                "No Toy!",
-                "You don't have a toy. Buy a Deflated Ball from the shop for 5 coins.",
-                [{ text: "OK" }]
-              );
-              return;
-            }
-            setActiveMode(null);
-            setSelectedFood(null);
-            setSelectedCleanTool(null);
-            setSelectedToy(null);
-            setIsSleeping(false);
-            setSelectedSleepItem(null);
-            setToySwatchOpen(true);
-          }}
-          style={[
-            { flex: 1, alignItems: "center" },
-            activeMode === "play" && styles.selectedActionButton,
-          ]}
-        >
-          <StatusCircle Icon={Smile} label="Happy" value={needs.mood} />
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            if (getTotalFood() === 0) {
-              Alert.alert(
-                "No Food!",
-                "You don't have any food. Buy some from the shop to feed Zibu.",
-                [{ text: "OK" }]
-              );
-              return;
-            }
-            setActiveMode(null);
-            setSelectedFood(null);
-            setSelectedCleanTool(null);
-            setSelectedToy(null);
-            setIsSleeping(false);
-            setSelectedSleepItem(null);
-            setFoodSwatchOpen(true);
-          }}
-          style={[
-            { flex: 1, alignItems: "center", justifyContent: "center" },
-            activeMode === "feed" && styles.selectedActionButton,
-          ]}
-        >
-          <StatusCircle Icon={Utensils} label="Full" value={needs.hunger} />
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            if (!inventory.old_sponge) {
-              Alert.alert(
-                "No Cleaner!",
-                "You don't have a cleaner. Buy an Old Sponge from the shop for 5 coins.",
-                [{ text: "OK" }]
-              );
-              return;
-            }
-            setActiveMode(null);
-            setSelectedFood(null);
-            setSelectedCleanTool(null);
-            setSelectedToy(null);
-            setIsSleeping(false);
-            setSelectedSleepItem(null);
-            setCleanSwatchOpen(true);
-          }}
-          style={[
-            { flex: 1, alignItems: "center" },
-            activeMode === "clean" && styles.selectedActionButton,
-          ]}
-        >
-          <StatusCircle Icon={Bath} label="Clean" value={needs.clean} />
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            if (!inventory.tattered_blanket) {
-              Alert.alert(
-                "No Blanket!",
-                "You don't have a blanket. Buy a Tattered Blanket from the shop for 5 coins.",
-                [{ text: "OK" }]
-              );
-              return;
-            }
-            setActiveMode(null);
-            setSelectedFood(null);
-            setSelectedCleanTool(null);
-            setSelectedToy(null);
-            setIsSleeping(false);
-            setSelectedSleepItem(null);
-            setSleepSwatchOpen(true);
-          }}
-          style={[
-            { flex: 1, alignItems: "center" },
-            activeMode === "sleep" && styles.selectedActionButton,
-          ]}
-        >
-          <StatusCircle Icon={Bed} label="Rested" value={needs.rest} />
-        </Pressable>
-      </View>
+                      foodUsedRef.current += 1; // Track how much food we used
+                    }, 1000);
+                  }
+                }}
+                onPressOut={() => {
+                  isFeedingRef.current = false; // Stop eat animation
+                  setIsFeeding(false); // Trigger re-render for eat animation
+                  // Stop feeding interval immediately when release
+                  if (feedIntervalRef.current) {
+                    clearInterval(feedIntervalRef.current);
+                    feedIntervalRef.current = null;
+                  }
+                  foodUsedRef.current = 0; // Reset counter
+                }}
+                style={StyleSheet.absoluteFill}
+              >
+                {/* Transparent overlay for feeding */}
+              </Pressable>
+            )}
+          </View>
+
+          <Modal
+            visible={coinModalOpen}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setCoinModalOpen(false)}
+          >
+            <Pressable
+              style={styles.modalOverlay}
+              onPress={() => setCoinModalOpen(false)}
+            >
+              <View style={styles.gearModalContent}>
+                <Text
+                  style={{ fontWeight: "700", fontSize: 18, marginBottom: 12 }}
+                >
+                  Settings
+                </Text>
+                <Text style={{ color: "#888", fontSize: 14, marginBottom: 16 }}>
+                  Coming soon...
+                </Text>
+                <Pressable
+                  style={{
+                    backgroundColor: "#FFB6C1",
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 6,
+                  }}
+                  onPress={async () => {
+                    setNeeds({ mood: 0, hunger: 0, clean: 0, rest: 0 });
+                    await AsyncStorage.setItem(
+                      "needs",
+                      JSON.stringify({ mood: 0, hunger: 0, clean: 0, rest: 0 })
+                    );
+                    await AsyncStorage.setItem(
+                      "lastUpdated",
+                      JSON.stringify(Date.now())
+                    );
+                  }}
+                >
+                  <Text
+                    style={{ color: "#333", fontWeight: "700", fontSize: 12 }}
+                  >
+                    Dev: Set All Needs to 0
+                  </Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Modal>
+
+          <SwatchModal
+            visible={sleepSwatchOpen}
+            title="Select Blanket"
+            items={[
+              {
+                key: "tattered_blanket",
+                label: "Tattered Blanket",
+                Icon: StickyNote,
+              },
+            ]}
+            selectedKey={selectedSleepItem}
+            onSelect={(key) => {
+              setActiveMode("sleep");
+              setSelectedSleepItem(key);
+              setSelectedFood(null);
+              setSelectedCleanTool(null);
+              setSelectedToy(null);
+              setSleepSwatchOpen(false);
+              setIsSleeping(true);
+            }}
+            onClose={() => setSleepSwatchOpen(false)}
+            instructions="Zibu is sleeping... (+1%/sec)"
+            selectedActive={isSleeping}
+          />
+
+          <SwatchModal
+            visible={foodSwatchOpen}
+            title="Select Food"
+            items={Object.entries(FOOD_TYPES)
+              .filter(
+                ([key, _]) => inventory[key as keyof typeof inventory] > 0
+              )
+              .map(([key, food]) => {
+                let Icon = Milk;
+                if (key === "star_milk") Icon = Milk;
+                else if (key === "cosmic_fruit") Icon = Salad;
+                else if (key === "galaxy_noodle") Icon = Soup;
+                return {
+                  key,
+                  label: food.label,
+                  Icon,
+                };
+              })}
+            selectedKey={selectedFood}
+            onSelect={(key) => {
+              setActiveMode("feed");
+              setSelectedFood(key);
+              setSelectedCleanTool(null);
+              setSelectedToy(null);
+              setIsSleeping(false);
+              setSelectedSleepItem(null);
+              setFoodSwatchOpen(false);
+            }}
+            onClose={() => setFoodSwatchOpen(false)}
+            instructions="Long hold Zibu to feed"
+            selectedActive={!!selectedFood}
+          />
+
+          <SwatchModal
+            visible={cleanSwatchOpen}
+            title="Select Cleaner"
+            items={[{ key: "old_sponge", label: "Old Sponge", Icon: Eraser }]}
+            selectedKey={selectedCleanTool}
+            onSelect={(key) => {
+              setActiveMode("clean");
+              setSelectedCleanTool(key);
+              setSelectedFood(null);
+              setSelectedToy(null);
+              setIsSleeping(false);
+              setSelectedSleepItem(null);
+              setCleanSwatchOpen(false);
+            }}
+            onClose={() => setCleanSwatchOpen(false)}
+            instructions="Swipe to wash"
+            selectedActive={!!selectedCleanTool}
+          />
+
+          <SwatchModal
+            visible={toySwatchOpen}
+            title="Select Toy"
+            items={[
+              {
+                key: "deflated_ball",
+                label: "Deflated Ball",
+                Icon: Volleyball,
+              },
+            ]}
+            selectedKey={selectedToy}
+            onSelect={(key) => {
+              setActiveMode("play");
+              setSelectedToy(key);
+              setSelectedFood(null);
+              setSelectedCleanTool(null);
+              setIsSleeping(false);
+              setIsPlaying(true);
+              setSelectedSleepItem(null);
+              setToySwatchOpen(false);
+            }}
+            onClose={() => setToySwatchOpen(false)}
+            instructions="Shake to play"
+            selectedActive={!!selectedToy}
+          />
+        </View>
+      </ImageBackground>
     </SafeAreaView>
   );
 }

@@ -25,11 +25,7 @@ import SpaceGameScreen from "./screens/SpaceGameScreen";
 import TiltMazeGameScreen from "./screens/TiltMazeGameScreen";
 import BackpackScreen from "./screens/BackpackScreen";
 import MeteorIntroScreen from "./screens/MeteorIntroScreen";
-
-export const OnboardingContext = React.createContext<{
-  resetOnboarding: () => Promise<void>;
-  resetCounter: number;
-} | null>(null);
+import { OnboardingContext } from "./OnboardingContext";
 
 const Tab = createBottomTabNavigator();
 const GamesStack = createNativeStackNavigator();

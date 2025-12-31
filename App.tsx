@@ -35,7 +35,7 @@ import StatusCircle from "./components/StatusCircle";
 import SwatchModal from "./components/SwatchModal";
 import ZibuSprite from "./components/ZibuSprite";
 import { useCoins, FOOD_TYPES } from "./contexts/CoinContext";
-import { OnboardingContext } from "./RootNavigator";
+import { OnboardingContext } from "./OnboardingContext";
 import {
   FRAME_COUNT,
   COLS,

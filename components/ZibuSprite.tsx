@@ -50,6 +50,7 @@ export default function ZibuSprite({
   if (isUpset) {
     return (
       <View
+        key="upset"
         style={{
           width: DISPLAY_SIZE,
           height: DISPLAY_SIZE,
@@ -72,6 +73,7 @@ export default function ZibuSprite({
   } else if (isSleeping) {
     return (
       <View
+        key="sleeping"
         style={{
           width: DISPLAY_SIZE,
           height: DISPLAY_SIZE,
@@ -94,6 +96,7 @@ export default function ZibuSprite({
   } else if (isFeeding) {
     return (
       <View
+        key="feeding"
         style={{
           width: DISPLAY_SIZE,
           height: DISPLAY_SIZE,
@@ -116,6 +119,7 @@ export default function ZibuSprite({
   } else if (isPlaying) {
     return (
       <View
+        key="playing"
         style={{
           width: DISPLAY_SIZE,
           height: DISPLAY_SIZE,
@@ -138,6 +142,7 @@ export default function ZibuSprite({
   } else {
     return (
       <View
+        key="blink"
         style={{
           width: DISPLAY_SIZE,
           height: DISPLAY_SIZE,

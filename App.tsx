@@ -33,9 +33,12 @@ import styles from "./App.styles";
 import StatusCircle from "./components/StatusCircle";
 import SwatchModal from "./components/SwatchModal";
 import ZibuSprite from "./components/ZibuSprite";
+import NeedsStatusRow from "./components/NeedsStatusRow";
+import FeedingOverlay from "./components/FeedingOverlay";
 import APSScreen from "./screens/APSScreen";
 import { useCoins, FOOD_TYPES } from "./contexts/CoinContext";
 import { OnboardingContext } from "./OnboardingContext";
+import { useSwatchModals } from "./hooks/useSwatchModals";
 import {
   FRAME_COUNT,
   COLS,
@@ -109,35 +112,42 @@ export default function HomeScreen() {
   // Track which action is currently active
   const [activeMode, setActiveMode] = useState<ActiveMode>(null);
 
-  // Swatch modals and selections
-  const [foodSwatchOpen, setFoodSwatchOpen] = useState(false);
-  const [selectedFood, setSelectedFood] = useState<string | null>(null);
+  // Swatch modals and selections - managed by custom hook
+  const {
+    foodSwatchOpen,
+    setFoodSwatchOpen,
+    selectedFood,
+    setSelectedFood,
+    onFoodSelect,
+    onFoodClose,
+    cleanSwatchOpen,
+    setCleanSwatchOpen,
+    selectedCleanTool,
+    setSelectedCleanTool,
+    onCleanSelect,
+    onCleanClose,
+    toySwatchOpen,
+    setToySwatchOpen,
+    selectedToy,
+    setSelectedToy,
+    onToySelect,
+    onToyClose,
+    sleepSwatchOpen,
+    setSleepSwatchOpen,
+    selectedSleepItem,
+    setSelectedSleepItem,
+    onSleepSelect,
+    onSleepClose,
+    resetAllSelections,
+  } = useSwatchModals({
+    onFoodSelect: () => setActiveMode("feed"),
+    onCleanSelect: () => setActiveMode("clean"),
+    onToySelect: () => setActiveMode("play"),
+    onSleepSelect: () => setActiveMode("sleep"),
+    onResetAllSelections: () => setActiveMode(null),
+  });
+
   const selectedFoodRef = useRef<string | null>(null);
-
-  const [cleanSwatchOpen, setCleanSwatchOpen] = useState(false);
-  const [selectedCleanTool, setSelectedCleanTool] = useState<string | null>(
-    null
-  );
-
-  const [toySwatchOpen, setToySwatchOpen] = useState(false);
-  const [selectedToy, setSelectedToy] = useState<string | null>(null);
-
-  const [sleepSwatchOpen, setSleepSwatchOpen] = useState(false);
-  const [selectedSleepItem, setSelectedSleepItem] = useState<string | null>(
-    null
-  );
-
-  // Diagnostic: check all modal visibilities
-  if (
-    typeof foodSwatchOpen !== "boolean" ||
-    typeof cleanSwatchOpen !== "boolean" ||
-    typeof toySwatchOpen !== "boolean" ||
-    typeof sleepSwatchOpen !== "boolean"
-  ) {
-    throw new Error(
-      `Modal state type error: foodSwatchOpen=${typeof foodSwatchOpen}, cleanSwatchOpen=${typeof cleanSwatchOpen}, toySwatchOpen=${typeof toySwatchOpen}, sleepSwatchOpen=${typeof sleepSwatchOpen}`
-    );
-  }
 
   // Activity states
   const [isPlaying, setIsPlaying] = useState(false); // Controls animation
@@ -665,108 +675,34 @@ export default function HomeScreen() {
         resizeMode="cover"
       >
         {/* Status icons row (meters) - overlaying background at top */}
-        <View style={styles.statusRow}>
-          <Pressable
-            onPress={() => {
-              if (!inventory.deflated_ball) {
-                Alert.alert(
-                  "No Toy!",
-                  "You don't have a toy. Buy a Deflated Ball from the shop for 5 coins.",
-                  [{ text: "OK" }]
-                );
-                return;
-              }
-              setActiveMode(null);
-              setSelectedFood(null);
-              setSelectedCleanTool(null);
-              setSelectedToy(null);
-              setIsSleeping(false);
-              setSelectedSleepItem(null);
-              setToySwatchOpen(true);
-            }}
-            style={[
-              { flex: 1, alignItems: "center" },
-              activeMode === "play" && styles.selectedActionButton,
-            ]}
-          >
-            <StatusCircle Icon={Smile} label="Happy" value={needs.mood} />
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              if (getTotalFood() === 0) {
-                Alert.alert(
-                  "No Food!",
-                  "You don't have any food. Buy some from the shop to feed Zibu.",
-                  [{ text: "OK" }]
-                );
-                return;
-              }
-              setActiveMode(null);
-              setSelectedFood(null);
-              setSelectedCleanTool(null);
-              setSelectedToy(null);
-              setIsSleeping(false);
-              setSelectedSleepItem(null);
-              setFoodSwatchOpen(true);
-            }}
-            style={[
-              { flex: 1, alignItems: "center", justifyContent: "center" },
-              activeMode === "feed" && styles.selectedActionButton,
-            ]}
-          >
-            <StatusCircle Icon={Utensils} label="Full" value={needs.hunger} />
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              if (!inventory.old_sponge) {
-                Alert.alert(
-                  "No Cleaner!",
-                  "You don't have a cleaner. Buy an Old Sponge from the shop for 5 coins.",
-                  [{ text: "OK" }]
-                );
-                return;
-              }
-              setActiveMode(null);
-              setSelectedFood(null);
-              setSelectedCleanTool(null);
-              setSelectedToy(null);
-              setIsSleeping(false);
-              setSelectedSleepItem(null);
-              setCleanSwatchOpen(true);
-            }}
-            style={[
-              { flex: 1, alignItems: "center" },
-              activeMode === "clean" && styles.selectedActionButton,
-            ]}
-          >
-            <StatusCircle Icon={Bath} label="Clean" value={needs.clean} />
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              if (!inventory.tattered_blanket) {
-                Alert.alert(
-                  "No Blanket!",
-                  "You don't have a blanket. Buy a Tattered Blanket from the shop for 5 coins.",
-                  [{ text: "OK" }]
-                );
-                return;
-              }
-              setActiveMode(null);
-              setSelectedFood(null);
-              setSelectedCleanTool(null);
-              setSelectedToy(null);
-              setIsSleeping(false);
-              setSelectedSleepItem(null);
-              setSleepSwatchOpen(true);
-            }}
-            style={[
-              { flex: 1, alignItems: "center" },
-              activeMode === "sleep" && styles.selectedActionButton,
-            ]}
-          >
-            <StatusCircle Icon={Bed} label="Rested" value={needs.rest} />
-          </Pressable>
-        </View>
+        <NeedsStatusRow
+          needs={needs}
+          inventory={inventory}
+          getTotalFood={getTotalFood}
+          activeMode={activeMode}
+          onPlaySelected={() => {
+            resetAllSelections();
+            setSelectedToy(null);
+            setIsSleeping(false);
+            setToySwatchOpen(true);
+          }}
+          onFeedSelected={() => {
+            resetAllSelections();
+            setSelectedFood(null);
+            setFoodSwatchOpen(true);
+          }}
+          onCleanSelected={() => {
+            resetAllSelections();
+            setSelectedCleanTool(null);
+            setCleanSwatchOpen(true);
+          }}
+          onSleepSelected={() => {
+            resetAllSelections();
+            setSelectedSleepItem(null);
+            setSleepSwatchOpen(true);
+          }}
+          selectedActionButtonStyle={styles.selectedActionButton}
+        />
 
         {/* Content with Zibu inside background */}
         <View
@@ -812,77 +748,33 @@ export default function HomeScreen() {
                 dirtiness={needs ? 1 - needs.clean : 0}
               />
             </View>
-            {selectedFood && getTotalFood() > 0 && !isTakenByAPS && (
-              <Pressable
-                onPressIn={() => {
-                  if (isTakenByAPS) return; // Prevent feeding if APS has Zibu
-                  setIsSleeping(false); // Stop sleeping if feeding
-                  isFeedingRef.current = true; // Start eat animation
-                  setIsFeeding(true); // Trigger re-render for eat animation
-                  foodUsedRef.current = 0; // Reset food used counter
-
-                  // Set the hunger increase rate based on selected food
-                  const selectedFoodKey =
-                    selectedFoodRef.current as keyof typeof inventory;
-                  const food = FOOD_TYPES[selectedFoodKey];
-                  selectedFoodHungerIncreaseRef.current =
-                    food.hungerRestore / 100;
-
-                  // Start feeding interval - consume 1 food per second, increase hunger by appropriate amount per second
-                  if (!feedIntervalRef.current) {
-                    feedIntervalRef.current = setInterval(() => {
-                      // Check if the selected food type is available using ref
-                      const selectedFoodKey =
-                        selectedFoodRef.current as keyof typeof inventory;
-                      if (
-                        !selectedFoodKey ||
-                        !inventoryRef.current ||
-                        inventoryRef.current[selectedFoodKey] <= 0
-                      ) {
-                        // Stop feeding if selected food type is gone
-                        if (feedIntervalRef.current) {
-                          clearInterval(feedIntervalRef.current);
-                          feedIntervalRef.current = null;
-                        }
-                        isFeedingRef.current = false;
-                        setIsFeeding(false);
-                        selectedFoodHungerIncreaseRef.current = 0;
-                        return;
-                      }
-
-                      // Use the selected food type
-                      subtractInventoryItem(selectedFoodKey, 1);
-
-                      setNeeds((prev) => {
-                        if (!prev) return null;
-                        return {
-                          ...prev,
-                          hunger: Math.min(
-                            1,
-                            prev.hunger + selectedFoodHungerIncreaseRef.current
-                          ),
-                        };
-                      });
-
-                      foodUsedRef.current += 1; // Track how much food we used
-                    }, 1000);
-                  }
-                }}
-                onPressOut={() => {
-                  isFeedingRef.current = false; // Stop eat animation
-                  setIsFeeding(false); // Trigger re-render for eat animation
-                  // Stop feeding interval immediately when release
-                  if (feedIntervalRef.current) {
-                    clearInterval(feedIntervalRef.current);
-                    feedIntervalRef.current = null;
-                  }
-                  foodUsedRef.current = 0; // Reset counter
-                }}
-                style={StyleSheet.absoluteFill}
-              >
-                {/* Transparent overlay for feeding */}
-              </Pressable>
-            )}
+            <FeedingOverlay
+              selectedFood={selectedFood}
+              needs={needs}
+              inventory={inventory}
+              isTakenByAPS={isTakenByAPS}
+              onHungerIncrease={(amount) => {
+                setNeeds((prev) => {
+                  if (!prev) return null;
+                  return {
+                    ...prev,
+                    hunger: Math.min(1, prev.hunger + amount),
+                  };
+                });
+              }}
+              onFeedingStateChange={(isFeeding) => {
+                setIsFeeding(isFeeding);
+                if (isFeeding) {
+                  isFeedingRef.current = true;
+                  setIsSleeping(false);
+                  foodUsedRef.current = 0;
+                } else {
+                  isFeedingRef.current = false;
+                  foodUsedRef.current = 0;
+                }
+              }}
+              subtractInventoryItem={subtractInventoryItem}
+            />
 
             {/* Sponge icon that follows the swipe during washing */}
             {selectedCleanTool && swipePosition && (
@@ -985,15 +877,11 @@ export default function HomeScreen() {
             ]}
             selectedKey={selectedSleepItem}
             onSelect={(key) => {
-              setActiveMode("sleep");
+              onSleepSelect(key);
               setSelectedSleepItem(key);
-              setSelectedFood(null);
-              setSelectedCleanTool(null);
-              setSelectedToy(null);
-              setSleepSwatchOpen(false);
               setIsSleeping(true);
             }}
-            onClose={() => setSleepSwatchOpen(false)}
+            onClose={onSleepClose}
             instructions="Zibu is sleeping... (+1%/sec)"
             selectedActive={isSleeping}
           />
@@ -1017,16 +905,8 @@ export default function HomeScreen() {
                 };
               })}
             selectedKey={selectedFood}
-            onSelect={(key) => {
-              setActiveMode("feed");
-              setSelectedFood(key);
-              setSelectedCleanTool(null);
-              setSelectedToy(null);
-              setIsSleeping(false);
-              setSelectedSleepItem(null);
-              setFoodSwatchOpen(false);
-            }}
-            onClose={() => setFoodSwatchOpen(false)}
+            onSelect={onFoodSelect}
+            onClose={onFoodClose}
             instructions="Long hold Zibu to feed"
             selectedActive={!!selectedFood}
           />
@@ -1036,16 +916,8 @@ export default function HomeScreen() {
             title="Select Cleaner"
             items={[{ key: "old_sponge", label: "Old Sponge", Icon: Eraser }]}
             selectedKey={selectedCleanTool}
-            onSelect={(key) => {
-              setActiveMode("clean");
-              setSelectedCleanTool(key);
-              setSelectedFood(null);
-              setSelectedToy(null);
-              setIsSleeping(false);
-              setSelectedSleepItem(null);
-              setCleanSwatchOpen(false);
-            }}
-            onClose={() => setCleanSwatchOpen(false)}
+            onSelect={onCleanSelect}
+            onClose={onCleanClose}
             instructions="Swipe to wash"
             selectedActive={!!selectedCleanTool}
           />
@@ -1062,16 +934,11 @@ export default function HomeScreen() {
             ]}
             selectedKey={selectedToy}
             onSelect={(key) => {
-              setActiveMode("play");
+              onToySelect(key);
               setSelectedToy(key);
-              setSelectedFood(null);
-              setSelectedCleanTool(null);
-              setIsSleeping(false);
               setIsPlaying(true);
-              setSelectedSleepItem(null);
-              setToySwatchOpen(false);
             }}
-            onClose={() => setToySwatchOpen(false)}
+            onClose={onToyClose}
             instructions="Shake to play"
             selectedActive={!!selectedToy}
           />

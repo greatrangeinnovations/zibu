@@ -55,7 +55,8 @@ export default function FeedingOverlay({
         onFeedingStateChange(true);
 
         // Set the hunger increase rate based on selected food
-        const selectedFoodKey = selectedFoodRef.current as keyof typeof inventory;
+        const selectedFoodKey =
+          selectedFoodRef.current as keyof typeof inventory;
         const food = FOOD_TYPES[selectedFoodKey];
         selectedFoodHungerIncreaseRef.current = food.hungerRestore / 100;
 

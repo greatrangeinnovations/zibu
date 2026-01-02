@@ -16,6 +16,7 @@ export function useAPSSystem(
   const [apsInfractions, setApsInfractions] = useState(0);
   const [apsRecoveryTime, setApsRecoveryTime] = useState<number | null>(null);
   const lastAPSExitTimeRef = useRef<number>(0);
+  const apsInfractionsRef = useRef(0); // Track latest value for callbacks
 
   // Initialize APS infractions and recovery time from storage
   useEffect(() => {
@@ -27,7 +28,9 @@ export function useAPSSystem(
         );
 
         if (infraRaw) {
-          setApsInfractions(parseInt(infraRaw, 10));
+          const infra = parseInt(infraRaw, 10);
+          setApsInfractions(infra);
+          apsInfractionsRef.current = infra;
         }
         if (recoveryTimeRaw) {
           setApsRecoveryTime(parseInt(recoveryTimeRaw, 10));
@@ -38,6 +41,11 @@ export function useAPSSystem(
     };
     init();
   }, []);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    apsInfractionsRef.current = apsInfractions;
+  }, [apsInfractions]);
 
   // Monitor needs to detect if all are at 0 (should trigger APS)
   useEffect(() => {
@@ -58,7 +66,7 @@ export function useAPSSystem(
 
   const recordRescue = useCallback(async () => {
     // Increment infractions but cap at 2 (so max cost is always 50 coins)
-    const newInfraction = Math.min(apsInfractions + 1, 2);
+    const newInfraction = Math.min(apsInfractionsRef.current + 1, 2);
     setApsInfractions(newInfraction);
 
     // Set recovery time to 24 hours from now
@@ -74,7 +82,7 @@ export function useAPSSystem(
     } catch (e) {
       console.warn("Failed to save APS data", e);
     }
-  }, [apsInfractions]);
+  }, []); // No dependencies - uses ref
 
   const recordExit = useCallback(() => {
     lastAPSExitTimeRef.current = Date.now();
@@ -86,6 +94,7 @@ export function useAPSSystem(
 
   const resetAPS = useCallback(async () => {
     setApsInfractions(0);
+    apsInfractionsRef.current = 0;
     setApsRecoveryTime(null);
     try {
       await AsyncStorage.setItem(APS_INFRACTIONS_KEY, "0");

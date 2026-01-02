@@ -26,7 +26,7 @@ export type ZibuSpriteProps = {
   dirtiness?: number;
 };
 
-export default function ZibuSprite({
+function ZibuSprite({
   isUpset,
   isSleeping,
   isFeeding,
@@ -256,3 +256,50 @@ export default function ZibuSprite({
     );
   }
 }
+
+// Custom comparison for React.memo to prevent re-renders
+// Only re-render if the relevant animation frame or state flags change
+const propsAreEqual = (
+  prevProps: ZibuSpriteProps,
+  nextProps: ZibuSpriteProps
+): boolean => {
+  // If state flags changed, re-render
+  if (
+    prevProps.isUpset !== nextProps.isUpset ||
+    prevProps.isSleeping !== nextProps.isSleeping ||
+    prevProps.isFeeding !== nextProps.isFeeding ||
+    prevProps.isPlaying !== nextProps.isPlaying ||
+    prevProps.dirtiness !== nextProps.dirtiness
+  ) {
+    return false;
+  }
+
+  // If only constant props changed (dimensions, cols, rows), don't re-render
+  // Check only the active animation frame for the current state
+  if (prevProps.isUpset && prevProps.upsetFrame !== nextProps.upsetFrame) {
+    return false;
+  }
+  if (prevProps.isSleeping && prevProps.sleepFrame !== nextProps.sleepFrame) {
+    return false;
+  }
+  if (prevProps.isFeeding && prevProps.eatFrame !== nextProps.eatFrame) {
+    return false;
+  }
+  if (prevProps.isPlaying && prevProps.playFrame !== nextProps.playFrame) {
+    return false;
+  }
+  // Default idle state uses frame
+  if (
+    !prevProps.isUpset &&
+    !prevProps.isSleeping &&
+    !prevProps.isFeeding &&
+    !prevProps.isPlaying &&
+    prevProps.frame !== nextProps.frame
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
+export default React.memo(ZibuSprite, propsAreEqual);

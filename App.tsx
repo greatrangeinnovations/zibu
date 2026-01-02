@@ -183,14 +183,18 @@ export default function HomeScreen() {
     []
   );
 
+  const handlePlayComplete = React.useCallback(() => {
+    setIsPlaying(false);
+  }, []);
+
   const playConfig = useMemo(
     () => ({
       fps: PLAYING_FPS,
       frameCount: PLAYING_FRAME_COUNT,
       loop: false,
-      onComplete: () => setIsPlaying(false),
+      onComplete: handlePlayComplete,
     }),
-    [setIsPlaying]
+    [handlePlayComplete]
   );
 
   const eatConfig = useMemo(
@@ -225,7 +229,7 @@ export default function HomeScreen() {
           const updated = prev
             .map((bubble) => ({
               ...bubble,
-              opacity: bubble.opacity - 0.05,
+              opacity: bubble.opacity - 0.1, // Faster fade (5 frames instead of 20)
             }))
             .filter((bubble) => bubble.opacity > 0);
           if (updated.length === 0) {
@@ -233,25 +237,31 @@ export default function HomeScreen() {
           }
           return updated;
         });
-      }, 30);
+      }, 50); // Reduced from 30ms to 50ms (20fps instead of 33fps for fade)
       return () => clearInterval(fadeTimer);
     }
 
-    // Randomly spawn bubbles at swipe position
-    if (Math.random() < 0.3) {
-      const newBubble: Bubble = {
-        id: bubbleIdRef.current++,
-        x: swipePosition.x + (Math.random() - 0.5) * 20,
-        y: swipePosition.y + (Math.random() - 0.5) * 20,
-        size: Math.random() * 6 + 20,
-        opacity: 1,
-        vx: (Math.random() - 0.5) * 2,
-        vy: (Math.random() - 1) * 2,
-      };
-      setBubbles((prev) => [...prev, newBubble]);
-    }
+    // Spawn bubble less frequently and in batches
+    let spawnCounter = 0;
+    const spawnInterval = setInterval(() => {
+      spawnCounter++;
+      if (spawnCounter >= 3) {
+        // Spawn every 3 ticks instead of random
+        spawnCounter = 0;
+        const newBubble: Bubble = {
+          id: bubbleIdRef.current++,
+          x: swipePosition.x + (Math.random() - 0.5) * 20,
+          y: swipePosition.y + (Math.random() - 0.5) * 20,
+          size: Math.random() * 6 + 20,
+          opacity: 1,
+          vx: (Math.random() - 0.5) * 2,
+          vy: (Math.random() - 1) * 2,
+        };
+        setBubbles((prev) => [...prev, newBubble]);
+      }
+    }, 50); // Match animation timer
 
-    // Animate existing bubbles (float up while cleaning)
+    // Animate existing bubbles (float up while cleaning) - reduced frequency
     const timer = setInterval(() => {
       setBubbles((prev) => {
         return prev.map((bubble) => ({
@@ -261,9 +271,12 @@ export default function HomeScreen() {
           vy: bubble.vy * 0.98, // Dampen vertical velocity
         }));
       });
-    }, 30);
+    }, 50); // Reduced from 30ms to 50ms (20fps instead of 33fps)
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      clearInterval(spawnInterval);
+    };
   }, [selectedCleanTool, swipePosition]);
 
   // Hatching state
@@ -389,24 +402,6 @@ export default function HomeScreen() {
     const interval = setInterval(updateAge, 1000 * 60 * 60); // Update every hour
     return () => clearInterval(interval);
   }, [hatchTime]);
-
-  useEffect(() => {
-    if (needs === null) return;
-
-    const saveState = async () => {
-      const data = {
-        needs,
-        lastUpdated: Date.now(),
-      };
-      try {
-        await AsyncStorage.setItem("zibu_needs_v1", JSON.stringify(data));
-      } catch (e) {
-        console.warn("Failed to save needs", e);
-      }
-    };
-
-    saveState();
-  }, [needs]);
 
   // Update cleaning ref when tool selection changes
   useEffect(() => {
@@ -534,20 +529,6 @@ export default function HomeScreen() {
       setIsSleeping(false);
     }
   }, [inventory.tattered_blanket, isSleeping]);
-
-  // Monitor needs to detect if meter is critical
-  useEffect(() => {
-    if (!needs) return;
-    const anyMeterCritical = Object.values(needs).some((value) => value < 0.1);
-
-    if (anyMeterCritical && !hasPlayedUpsetRef.current) {
-      setIsUpset(true);
-      hasPlayedUpsetRef.current = true;
-    } else if (!anyMeterCritical && hasPlayedUpsetRef.current) {
-      hasPlayedUpsetRef.current = false;
-      setIsUpset(false);
-    }
-  }, [needs]);
 
   // Monitor needs to detect if meter is critical
   useEffect(() => {

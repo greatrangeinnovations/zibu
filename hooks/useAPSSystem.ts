@@ -3,7 +3,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { NeedKey } from "../types";
 
 const APS_INFRACTIONS_KEY = "zibu_aps_infractions_v1";
+const APS_RECOVERY_TIME_KEY = "zibu_aps_recovery_time_v1";
 const APS_COSTS = [10, 20, 50]; // Cost to rescue at each infraction (1st, 2nd, 3rd)
+const APS_RECOVERY_HOURS = 24; // Time to wait for free recovery
 
 export function useAPSSystem(
   needs: Record<NeedKey, number> | null,
@@ -12,18 +14,26 @@ export function useAPSSystem(
   const [isTakenByAPS, setIsTakenByAPS] = useState(false);
   const [justRescued, setJustRescued] = useState(false);
   const [apsInfractions, setApsInfractions] = useState(0);
+  const [apsRecoveryTime, setApsRecoveryTime] = useState<number | null>(null);
   const lastAPSExitTimeRef = useRef<number>(0);
 
-  // Initialize APS infractions from storage
+  // Initialize APS infractions and recovery time from storage
   useEffect(() => {
     const init = async () => {
       try {
         const infraRaw = await AsyncStorage.getItem(APS_INFRACTIONS_KEY);
+        const recoveryTimeRaw = await AsyncStorage.getItem(
+          APS_RECOVERY_TIME_KEY
+        );
+
         if (infraRaw) {
           setApsInfractions(parseInt(infraRaw, 10));
         }
+        if (recoveryTimeRaw) {
+          setApsRecoveryTime(parseInt(recoveryTimeRaw, 10));
+        }
       } catch (e) {
-        console.warn("Failed to load APS infractions", e);
+        console.warn("Failed to load APS data", e);
       }
     };
     init();
@@ -47,12 +57,22 @@ export function useAPSSystem(
   }, [needs, isTakenByAPS, justRescued, onCaptured]);
 
   const recordRescue = useCallback(async () => {
-    const newInfraction = apsInfractions + 1;
+    // Increment infractions but cap at 2 (so max cost is always 50 coins)
+    const newInfraction = Math.min(apsInfractions + 1, 2);
     setApsInfractions(newInfraction);
+
+    // Set recovery time to 24 hours from now
+    const recoveryTime = Date.now() + APS_RECOVERY_HOURS * 60 * 60 * 1000;
+    setApsRecoveryTime(recoveryTime);
+
     try {
       await AsyncStorage.setItem(APS_INFRACTIONS_KEY, newInfraction.toString());
+      await AsyncStorage.setItem(
+        APS_RECOVERY_TIME_KEY,
+        recoveryTime.toString()
+      );
     } catch (e) {
-      console.warn("Failed to save APS infractions", e);
+      console.warn("Failed to save APS data", e);
     }
   }, [apsInfractions]);
 
@@ -66,12 +86,19 @@ export function useAPSSystem(
 
   const resetAPS = useCallback(async () => {
     setApsInfractions(0);
+    setApsRecoveryTime(null);
     try {
       await AsyncStorage.setItem(APS_INFRACTIONS_KEY, "0");
+      await AsyncStorage.removeItem(APS_RECOVERY_TIME_KEY);
     } catch (e) {
-      console.warn("Failed to reset APS infractions", e);
+      console.warn("Failed to reset APS data", e);
     }
   }, []);
+
+  const canRecoverForFree = apsRecoveryTime && Date.now() >= apsRecoveryTime;
+  const recoveryTimeRemaining = apsRecoveryTime
+    ? Math.max(0, apsRecoveryTime - Date.now())
+    : 0;
 
   return {
     isTakenByAPS,
@@ -79,8 +106,10 @@ export function useAPSSystem(
     justRescued,
     setJustRescued,
     apsInfractions,
-    currentCost: apsInfractions < 3 ? APS_COSTS[apsInfractions] : 0,
-    isPermanentLoss: apsInfractions >= 3,
+    currentCost: APS_COSTS[Math.min(apsInfractions, 2)], // Max cost is 50
+    canRecoverForFree,
+    recoveryTimeRemaining,
+    apsRecoveryTime,
     recordRescue,
     recordExit,
     resetAPS,

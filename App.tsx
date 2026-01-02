@@ -97,8 +97,10 @@ export default function HomeScreen() {
     isTakenByAPS,
     setIsTakenByAPS,
     apsInfractions,
-    isPermanentLoss,
     currentCost,
+    canRecoverForFree,
+    recoveryTimeRemaining,
+    apsRecoveryTime,
     recordRescue,
     recordExit,
     resetAPS,
@@ -575,15 +577,13 @@ export default function HomeScreen() {
   }
 
   if (isTakenByAPS) {
-    // APS taken Zibu screen - with escalating costs and permanent loss on 3rd infraction
-    const currentInfraction = apsInfractions + 1; // Next infraction number
-    const rescueCost = currentCost; // From the hook
+    // APS taken Zibu screen - Version B: Better for kids and parents
+    // Shows warning, offers choice between coin recovery or time-based recovery
+    const currentStrike = apsInfractions + 1;
 
-    const handleRescueZibu = async () => {
-      if (isPermanentLoss) return; // Cannot rescue on permanent loss
-
-      if (coins >= rescueCost) {
-        subtractCoins(rescueCost);
+    const handleRecoverWithCoins = async () => {
+      if (coins >= currentCost) {
+        subtractCoins(currentCost);
 
         // Reset needs to 50%
         const rescuedNeeds = {
@@ -610,32 +610,38 @@ export default function HomeScreen() {
       } else {
         Alert.alert(
           "Not Enough Coins",
-          `You need ${rescueCost} coins to rescue Zibu from APS!`
+          `You need ${currentCost} coins to help Zibu recover right now!`
         );
       }
     };
 
-    const handleStartOver = async () => {
-      // Reset everything for a fresh start
-      await AsyncStorage.removeItem(HATCH_STORAGE_KEY);
-      await AsyncStorage.removeItem(AGE_STORAGE_KEY);
-      await AsyncStorage.removeItem("zibu_needs_v1");
-      // Also clear the meteor intro so user sees intro screen again
-      await AsyncStorage.removeItem("zibu_meteor_intro_seen_v1");
-      await resetAPS();
+    const handleWaitForRecovery = async () => {
+      // Reset needs to 50% but don't record another infraction
+      const rescuedNeeds = {
+        mood: 0.5,
+        hunger: 0.5,
+        clean: 0.5,
+        rest: 0.5,
+      };
 
-      // Reset local state
-      setIsHatched(null);
-      setHatchShakeCount(0);
-      setHatchTime(null);
-      setAge(0);
+      // SAVE TO STORAGE FIRST
+      await AsyncStorage.setItem(
+        "zibu_needs_v1",
+        JSON.stringify({
+          needs: rescuedNeeds,
+          lastUpdated: Date.now(),
+        })
+      );
+
+      // Record the recovery time so we don't increment strikes again
+      await recordRescue();
+      recordExit();
       setIsTakenByAPS(false);
-      setNeeds(null);
+    };
 
-      // Use the onboarding context to reset to intro screen
-      if (onboardingContext?.resetOnboarding) {
-        await onboardingContext.resetOnboarding();
-      }
+    const formatTimeRemaining = (ms: number) => {
+      const hours = Math.ceil(ms / (1000 * 60 * 60));
+      return `${hours}h`;
     };
 
     return (
@@ -648,153 +654,136 @@ export default function HomeScreen() {
             paddingHorizontal: 20,
           }}
         >
-          {isPermanentLoss ? (
-            <>
-              <Skull size={80} color="#FF3333" style={{ marginBottom: 20 }} />
-              <Text
-                style={{
-                  fontSize: 32,
-                  fontWeight: "700",
-                  color: "#fff",
-                  marginBottom: 12,
-                  textAlign: "center",
-                }}
-              >
-                Zibu is Gone Forever
-              </Text>
-              <Text
-                style={{
-                  fontSize: 16,
-                  color: "#ccc",
-                  marginBottom: 24,
-                  textAlign: "center",
-                }}
-              >
-                The APS has permanently taken Zibu. You failed to care for them
-                too many times. Start over with a new Zibu.
-              </Text>
-              <Pressable
-                onPress={handleStartOver}
-                style={{
-                  paddingVertical: 12,
-                  paddingHorizontal: 24,
-                  backgroundColor: "#6DD19C",
-                  borderRadius: 8,
-                  width: "100%",
-                  alignItems: "center",
-                }}
-              >
-                <Text
-                  style={{ fontSize: 18, fontWeight: "600", color: "#fff" }}
-                >
-                  Start Over with New Zibu
-                </Text>
-              </Pressable>
-            </>
-          ) : (
-            <>
-              <Rocket size={80} color="#FF6B6B" style={{ marginBottom: 20 }} />
-              <Text
-                style={{
-                  fontSize: 32,
-                  fontWeight: "700",
-                  color: "#fff",
-                  marginBottom: 12,
-                  textAlign: "center",
-                }}
-              >
-                Zibu Taken by APS!
-              </Text>
+          <Rocket size={80} color="#FF6B6B" style={{ marginBottom: 20 }} />
+
+          <Text
+            style={{
+              fontSize: 32,
+              fontWeight: "700",
+              color: "#fff",
+              marginBottom: 12,
+              textAlign: "center",
+            }}
+          >
+            Zibu Taken by APS
+          </Text>
+
+          <Text
+            style={{
+              fontSize: 16,
+              color: "#ccc",
+              marginBottom: 24,
+              textAlign: "center",
+              lineHeight: 24,
+            }}
+          >
+            Alien Protective Services noticed Zibu wasn't feeling well. This is
+            a warning to take extra care.
+          </Text>
+
+          {/* Warning banner */}
+          <View
+            style={{
+              backgroundColor: "#FF9500",
+              padding: 12,
+              borderRadius: 8,
+              marginBottom: 24,
+              width: "100%",
+              borderLeftWidth: 4,
+              borderLeftColor: "#FF6B6B",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "700",
+                color: "#fff",
+                textAlign: "center",
+              }}
+            >
+              ⚠️ Zibu requires proper care or APS will intervene.
+            </Text>
+          </View>
+
+          {/* Recovery options */}
+          <View style={{ width: "100%", gap: 12 }}>
+            {/* Option 1: Pay coins */}
+            <Pressable
+              onPress={handleRecoverWithCoins}
+              style={{
+                paddingVertical: 16,
+                paddingHorizontal: 16,
+                backgroundColor: coins >= currentCost ? "#6DD19C" : "#999",
+                borderRadius: 8,
+                width: "100%",
+                alignItems: "center",
+              }}
+            >
               <Text
                 style={{
                   fontSize: 14,
-                  color: "#aaa",
-                  marginBottom: 12,
-                  textAlign: "center",
+                  fontWeight: "600",
+                  color: "#fff",
+                  marginBottom: 4,
                 }}
               >
-                Infraction #{currentInfraction} of 3
+                {coins >= currentCost
+                  ? `Help Zibu Recover (${currentCost} coins)`
+                  : `Not Enough Coins (need ${currentCost})`}
               </Text>
               <Text
                 style={{
-                  fontSize: 16,
-                  color: "#ccc",
-                  marginBottom: 24,
-                  textAlign: "center",
-                }}
-              >
-                The Alien Protective Services have taken Zibu due to poor care.
-                Pay {rescueCost} coins to get them back!
-              </Text>
-              {currentInfraction === 3 && (
-                <View
-                  style={{
-                    backgroundColor: "#FF6B6B",
-                    padding: 12,
-                    borderRadius: 8,
-                    marginBottom: 20,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: "700",
-                      color: "#fff",
-                      textAlign: "center",
-                    }}
-                  >
-                    ⚠️ WARNING: One more infraction and Zibu is GONE FOREVER
-                  </Text>
-                </View>
-              )}
-              <View
-                style={{
-                  backgroundColor: "#FF6B6B",
-                  padding: 12,
-                  borderRadius: 8,
-                  marginBottom: 20,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 20,
-                    fontWeight: "700",
-                    color: "#fff",
-                    textAlign: "center",
-                  }}
-                >
-                  Cost: {rescueCost} coins
-                </Text>
-              </View>
-              <Text
-                style={{
-                  fontSize: 16,
-                  color: "#aaa",
-                  marginBottom: 32,
-                  textAlign: "center",
+                  fontSize: 12,
+                  color: "rgba(255,255,255,0.8)",
                 }}
               >
                 Current coins: {coins}
               </Text>
-              <Pressable
-                onPress={handleRescueZibu}
+            </Pressable>
+
+            {/* Option 2: Wait for recovery */}
+            <Pressable
+              onPress={handleWaitForRecovery}
+              style={{
+                paddingVertical: 16,
+                paddingHorizontal: 16,
+                backgroundColor: "#4A5B8A",
+                borderRadius: 8,
+                width: "100%",
+                alignItems: "center",
+              }}
+            >
+              <Text
                 style={{
-                  paddingVertical: 12,
-                  paddingHorizontal: 24,
-                  backgroundColor: coins >= rescueCost ? "#6DD19C" : "#999",
-                  borderRadius: 8,
-                  width: "100%",
-                  alignItems: "center",
+                  fontSize: 14,
+                  fontWeight: "600",
+                  color: "#fff",
+                  marginBottom: 4,
                 }}
               >
-                <Text
-                  style={{ fontSize: 18, fontWeight: "600", color: "#fff" }}
-                >
-                  {coins >= rescueCost ? "Rescue Zibu" : "Not Enough Coins"}
-                </Text>
-              </Pressable>
-            </>
-          )}
+                Wait until Tomorrow
+              </Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: "rgba(255,255,255,0.8)",
+                }}
+              >
+                Zibu will rest for 24 hours (free)
+              </Text>
+            </Pressable>
+          </View>
+
+          <Text
+            style={{
+              fontSize: 12,
+              color: "#888",
+              marginTop: 20,
+              textAlign: "center",
+            }}
+          >
+            Either way, Zibu will recover and feel 50% better.
+          </Text>
         </View>
       </SafeAreaView>
     );

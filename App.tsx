@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState, useContext, useMemo } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   StatusBar,
   Pressable,
   Modal,
@@ -15,11 +14,6 @@ import { useNavigation } from "@react-navigation/native";
 import {
   Coins,
   Settings,
-  Skull,
-  Smile,
-  Utensils,
-  Bath,
-  Bed,
   Milk,
   Salad,
   Soup,
@@ -30,7 +24,6 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import styles from "./App.styles";
-import StatusCircle from "./components/StatusCircle";
 import SwatchModal from "./components/SwatchModal";
 import ZibuSprite from "./components/ZibuSprite";
 import NeedsStatusRow from "./components/NeedsStatusRow";
@@ -40,11 +33,9 @@ import { useCoins, FOOD_TYPES } from "./contexts/CoinContext";
 import { OnboardingContext } from "./OnboardingContext";
 import { useSwatchModals } from "./hooks/useSwatchModals";
 import {
-  FRAME_COUNT,
   COLS,
   ROWS,
   DISPLAY_SIZE,
-  FPS,
   PLAYING_COLS,
   PLAYING_ROWS,
   PLAYING_FRAME_COUNT,
@@ -69,7 +60,6 @@ import {
   useAPSSystem,
   useBlinkAnimation,
 } from "./hooks";
-import type { NeedKey } from "./types";
 
 type ActiveMode = "feed" | "clean" | "play" | "sleep" | null;
 
@@ -78,7 +68,6 @@ const HATCH_STORAGE_KEY = "zibu_hatched_v1";
 const AGE_STORAGE_KEY = "zibu_age_v1"; // Timestamp when hatched
 
 export default function HomeScreen() {
-  const navigation = useNavigation<any>();
   const onboardingContext = useContext(OnboardingContext);
   const {
     coins,

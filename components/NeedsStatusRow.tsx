@@ -143,10 +143,8 @@ export default function NeedsStatusRow({
 const styles = StyleSheet.create({
   statusRow: {
     flexDirection: "row",
-    paddingVertical: 12,
+    marginTop: 32,
     paddingHorizontal: 8,
     backgroundColor: "rgba(255, 255, 255, 0.9)",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
   },
 });

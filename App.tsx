@@ -637,16 +637,6 @@ export default function HomeScreen() {
             <Coins size={20} color="#F4D35E" style={{ marginRight: 6 }} />
             <Text style={styles.coinText}>{coins.toLocaleString()}</Text>
           </View>
-          <Text
-            style={{
-              fontSize: 12,
-              color: "#666",
-              marginLeft: 2,
-              marginTop: 4,
-            }}
-          >
-            Age: {age} day{age !== 1 ? "s" : ""}
-          </Text>
         </View>
         <Pressable
           style={styles.gearButton}
